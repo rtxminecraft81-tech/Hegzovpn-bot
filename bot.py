@@ -4,6 +4,7 @@ import json
 import os
 import time
 from datetime import datetime
+from flask import Flask, request
 
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
@@ -16,6 +17,8 @@ CARD_NAME = 'احمد خزایی'
 REFERRAL_AMOUNT = 5000
 
 bot = telebot.TeleBot(TOKEN)
+app = Flask(__name__)
+
 USER_DB = 'users.json'
 
 def load_users():
@@ -582,14 +585,23 @@ def unknown(m):
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
 
+@app.route('/' + TOKEN, methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode('UTF-8')
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "OK", 200
+
+@app.route('/')
+def index():
+    return "Hegzo VPN Bot is running!", 200
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
+    bot.remove_webhook()
+    bot.set_webhook(url=f'https://hegzovpn-bot.onrender.com/{TOKEN}')
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 5 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
-    while True:
-        try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60)
-        except Exception as e:
-            print(f"خطا: {e}")
-            time.sleep(10)
+    app.run(host='0.0.0.0', port=PORT)
+    
