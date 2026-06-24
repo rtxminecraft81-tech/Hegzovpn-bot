@@ -587,5 +587,12 @@ if __name__ == '__main__':
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
-    bot.remove_webhook()
+    
+    # حذف وب‌هوک قبل از شروع polling
+    try:
+        bot.delete_webhook()
+        print("✅ Webhook deleted successfully!")
+    except Exception as e:
+        print(f"❌ Error deleting webhook: {e}")
+    
     bot.infinity_polling()
