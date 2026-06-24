@@ -289,7 +289,10 @@ def show_config_detail(call):
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به لیست کانفیگ‌ها", callback_data="back_to_configs"))
     markup.add(types.InlineKeyboardButton("🏠 بازگشت به منوی اصلی", callback_data="back_main"))
     
-    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
+    try:
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, text, reply_markup=markup, parse_mode='Markdown')
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_configs")
@@ -298,7 +301,10 @@ def back_to_configs(call):
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
     
     if not cfg_list:
-        bot.edit_message_text("📭 کانفیگ فعالی ندارید!", call.message.chat.id, call.message.message_id, parse_mode='Markdown')
+        try:
+            bot.edit_message_text("📭 کانفیگ فعالی ندارید!", call.message.chat.id, call.message.message_id, parse_mode='Markdown')
+        except:
+            bot.send_message(call.message.chat.id, "📭 کانفیگ فعالی ندارید!", parse_mode='Markdown')
         return
     
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -308,23 +314,38 @@ def back_to_configs(call):
         markup.add(types.InlineKeyboardButton(f"{i+1}. {package} ({date})", callback_data=f"showcfg_{i}"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="back_main"))
     
-    bot.edit_message_text("📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
+    try:
+        bot.edit_message_text("📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", reply_markup=markup, parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_eco")
 def lev_eco(call):
-    bot.edit_message_text("💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=eco_menu(), parse_mode='Markdown')
+    try:
+        bot.edit_message_text("💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=eco_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=eco_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_family")
 def lev_family(call):
-    bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
+    try:
+        bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "👨‍👩‍👧‍👦 **بسته خانواده (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=family_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_gaming")
 def lev_gaming(call):
-    bot.edit_message_text("🎮 **سرور گیمینگ (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
+    try:
+        bot.edit_message_text("🎮 **سرور گیمینگ (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "🎮 **سرور گیمینگ (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=gaming_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_vip")
 def lev_vip(call):
-    bot.edit_message_text("💎 **سرور ویژه VIP (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=vip_menu(), parse_mode='Markdown')
+    try:
+        bot.edit_message_text("💎 **سرور ویژه VIP (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=vip_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "💎 **سرور ویژه VIP (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=vip_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "family_inactive")
 def family_inactive(call):
@@ -340,11 +361,17 @@ def vip_inactive(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
-    bot.edit_message_text("📊 انتخاب نوع سرویس:", call.message.chat.id, call.message.message_id, reply_markup=buy_menu())
+    try:
+        bot.edit_message_text("📊 انتخاب نوع سرویس:", call.message.chat.id, call.message.message_id, reply_markup=buy_menu())
+    except:
+        bot.send_message(call.message.chat.id, "📊 انتخاب نوع سرویس:", reply_markup=buy_menu())
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_main")
 def back_main(call):
-    bot.edit_message_text("🔥 منوی اصلی:", call.message.chat.id, call.message.message_id, reply_markup=main_keyboard())
+    try:
+        bot.edit_message_text("🔥 منوی اصلی:", call.message.chat.id, call.message.message_id, reply_markup=main_keyboard())
+    except:
+        bot.send_message(call.message.chat.id, "🔥 منوی اصلی:", reply_markup=main_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("b_"))
 def buy_cmd(call):
@@ -560,4 +587,9 @@ if __name__ == '__main__':
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 5 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
-    bot.infinity_polling()
+    while True:
+        try:
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"خطا: {e}")
+            time.sleep(10)
