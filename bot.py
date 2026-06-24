@@ -105,9 +105,9 @@ def buy_menu():
 
 def eco_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("25 گیگ - 190,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco25_190000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 350,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco50_350000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 650,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco100_650000"))
+    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco25_180000"))
+    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco50_250000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 5 مگابیت)", callback_data="b_eco100_450000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
