@@ -554,14 +554,10 @@ def unknown(m):
         bot.reply_to(m, "⛔ شما مسدود شده اید!")
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
-    if __name__ == '__main__':
+
+if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 5 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
-    try:
-        bot.polling(none_stop=True, interval=0, timeout=60)
-    except Exception as e:
-        print(f"خطا: {e}")
-        time.sleep(10)
-
+    bot.infinity_polling()
