@@ -1,7 +1,8 @@
+import os
+import sys
 import telebot
 from telebot import types
 import json
-import os
 import time
 from datetime import datetime
 from flask import Flask, request
@@ -11,6 +12,8 @@ import pymongo
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
     raise ValueError("❌ توکن پیدا نشد! BOT_TOKEN رو توی Render تنظیم کن.")
+
+os.environ['PYTHONUNBUFFERED'] = '1'
 
 MONGO_URI = "mongodb+srv://rtx_user:rtx123456@cluster0.sjyebyr.mongodb.net/?appName=Cluster0"
 
@@ -617,8 +620,10 @@ def index():
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     bot.remove_webhook()
-    bot.set_webhook(url=f'https://hegzovpn-bot.onrender.com/{TOKEN}')
+    webhook_url = f'https://hegzovpn-bot.onrender.com/{TOKEN}'
+    bot.set_webhook(url=webhook_url)
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
+    print(f"✅ Webhook set to: {webhook_url}")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     app.run(host='0.0.0.0', port=PORT)
