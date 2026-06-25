@@ -102,9 +102,9 @@ def buy_menu():
 
 def eco_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco25_180000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco50_250000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco100_450000"))
+    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco25_180000"))
+    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco50_250000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco100_450000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -582,17 +582,23 @@ def unknown(m):
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
 
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "Hegzo VPN Bot is running!", 200
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    # حذف وب‌هوک قبل از شروع polling
-    try:
-        bot.delete_webhook()
-        print("✅ Webhook deleted successfully!")
-    except Exception as e:
-        print(f"❌ Error deleting webhook: {e}")
+    bot.delete_webhook()
+    
+    # اجرای Flask در یک thread جداگانه
+    import threading
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     
     bot.infinity_polling()
