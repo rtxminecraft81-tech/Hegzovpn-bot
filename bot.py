@@ -25,7 +25,7 @@ CARD_NUMBER = '5022291525516892'
 CARD_NAME = 'احمد خزایی'
 REFERRAL_AMOUNT = 5000
 
-client = pymongo.MongoClient(MONGO_URI)
+client = pymongo.MongoClient(MONGO_URI, maxPoolSize=10, connectTimeoutMS=5000, socketTimeoutMS=5000)
 db = client['hegzo_bot']
 users_col = db['users']
 banned_col = db['banned_users']
@@ -610,15 +610,13 @@ if __name__ == '__main__':
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    # حذف Webhook قبل از شروع
     try:
         bot.delete_webhook()
         print("✅ Webhook deleted!")
     except:
         pass
     
-    # اجرای Flask برای باز نگه داشتن پورت
     import threading
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     
-    bot.infinity_polling()
+    bot.infinity_polling(timeout=20, long_polling_timeout=20)
