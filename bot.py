@@ -187,7 +187,7 @@ def invite(m):
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
 def support(m):
-    bot.reply_to(m, "🆔 **پشتیبانی Hegzo VPN**\n\n@bintc\n\n۲۴ ساعته پاسخگوی شما هستیم.", parse_mode='Markdown')
+    bot.reply_to(m, "🆔 **پشتیبانی Hegzo VPN**\n\n@hegzosupport\n\n۲۴ ساعته پاسخگوی شما هستیم.", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 def charge(m):
