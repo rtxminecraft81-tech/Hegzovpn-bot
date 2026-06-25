@@ -4,6 +4,14 @@ import json
 import os
 import time
 from datetime import datetime
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Hegzo VPN Bot is running!", 200
 
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
@@ -185,9 +193,9 @@ def support(m):
 def charge(m):
     text = f"""💳 **شارژ کیف پول Hegzo VPN**
 
-━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💰 **حداقل شارژ:** 200,000 تومان
-━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💳 **شماره کارت:** `{CARD_NUMBER}`
 🏦 **به نام:** {CARD_NAME}
@@ -203,7 +211,7 @@ def charge(m):
 • کد پیگیری رسید را برای پیگیری نگهداری کنید
 
 🆔 پشتیبانی: @bintc
-━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📝 لطفا مبلغ مورد نظر را وارد کنید (به تومان):"""
     bot.reply_to(m, text, parse_mode='Markdown')
@@ -588,7 +596,7 @@ if __name__ == '__main__':
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    # حذف Webhook و ریست offset برای جلوگیری از ارور 409
+    # حذف Webhook و ریست offset
     try:
         bot.delete_webhook()
         print("✅ Webhook deleted!")
@@ -602,5 +610,8 @@ if __name__ == '__main__':
         print("✅ Updates cleared!")
     except:
         pass
+    
+    # اجرای Flask برای باز نگه داشتن پورت
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     
     bot.infinity_polling()
