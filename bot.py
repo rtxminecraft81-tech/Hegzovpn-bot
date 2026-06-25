@@ -4,10 +4,13 @@ import json
 import os
 import time
 from datetime import datetime
+import pymongo
 
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
     raise ValueError("❌ توکن پیدا نشد! BOT_TOKEN رو توی Render تنظیم کن.")
+
+MONGO_URI = "mongodb+srv://rtx_user:rtx123456@cluster0.sjyebyr.mongodb.net/?appName=Cluster0"
 
 ADMIN_ID = '6795169616'
 CHANNEL_USERNAME = '@hegzo_vpn_channle'
@@ -15,22 +18,31 @@ CARD_NUMBER = '5022291525516892'
 CARD_NAME = 'احمد خزایی'
 REFERRAL_AMOUNT = 5000
 
-bot = telebot.TeleBot(TOKEN)
-USER_DB = 'users.json'
+# ========== اتصال به MongoDB ==========
+client = pymongo.MongoClient(MONGO_URI)
+db = client['hegzo_bot']
+users_col = db['users']
+banned_col = db['banned_users']
 
-def load_users():
-    if os.path.exists(USER_DB):
-        with open(USER_DB, 'r') as f:
-            return json.load(f)
-    return {}
+def get_user(user_id):
+    return users_col.find_one({'_id': str(user_id)})
 
-def save_users(users):
-    with open(USER_DB, 'w') as f:
-        json.dump(users, f, indent=4)
+def set_user(user_id, data):
+    users_col.update_one({'_id': str(user_id)}, {'$set': data}, upsert=True)
+
+def get_all_users():
+    return list(users_col.find())
+
+def get_banned():
+    doc = banned_col.find_one({'_id': 'banned'})
+    return set(doc.get('list', [])) if doc else set()
+
+def set_banned(banned_set):
+    banned_col.update_one({'_id': 'banned'}, {'$set': {'list': list(banned_set)}}, upsert=True)
 
 def init_user(user_id, username=""):
-    if str(user_id) not in users:
-        users[str(user_id)] = {
+    if not get_user(user_id):
+        set_user(user_id, {
             'username': username,
             'credit': 0,
             'active_configs': [],
@@ -38,26 +50,13 @@ def init_user(user_id, username=""):
             'invited_by': None,
             'referrals': 0,
             'joined_at': str(datetime.now())
-        }
-        save_users(users)
-
-users = load_users()
-banned_users = set()
-
-def load_banned_users():
-    global banned_users
-    if os.path.exists('banned_users.json'):
-        with open('banned_users.json', 'r') as f:
-            banned_users = set(json.load(f))
-
-def save_banned_users():
-    with open('banned_users.json', 'w') as f:
-        json.dump(list(banned_users), f)
+        })
 
 def is_banned(user_id):
-    return str(user_id) in banned_users
+    return str(user_id) in get_banned()
 
-load_banned_users()
+# ========== بقیه کد ==========
+bot = telebot.TeleBot(TOKEN)
 
 def is_member(user_id):
     try:
@@ -102,9 +101,9 @@ def buy_menu():
 
 def eco_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco25_180000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco50_250000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 2 مگابیت)", callback_data="b_eco100_450000"))
+    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco25_180000"))
+    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco50_250000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco100_450000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -138,12 +137,15 @@ def start(message):
     if len(message.text.split()) > 1:
         try:
             ref = int(message.text.split()[1])
-            if ref != user_id and str(ref) in users and not users[str(user_id)].get('invited_by'):
-                users[str(ref)]['referrals'] += 1
-                users[str(user_id)]['invited_by'] = ref
-                users[str(ref)]['credit'] += REFERRAL_AMOUNT
-                save_users(users)
-                bot.send_message(ref, "🎉 کاربر جدید با لینک شما عضو شد!")
+            if ref != user_id:
+                user_data = get_user(str(ref))
+                if user_data and not get_user(str(user_id)).get('invited_by'):
+                    set_user(str(ref), {
+                        'referrals': user_data.get('referrals', 0) + 1,
+                        'credit': user_data.get('credit', 0) + REFERRAL_AMOUNT
+                    })
+                    set_user(str(user_id), {'invited_by': ref})
+                    bot.send_message(ref, "🎉 کاربر جدید با لینک شما عضو شد!")
         except:
             pass
     if not is_member(user_id):
@@ -164,7 +166,9 @@ def show_buy(m):
 @bot.message_handler(func=lambda m: m.text == "👤 حساب کاربری")
 def profile(m):
     user_id = m.from_user.id
-    data = users.get(str(user_id), {})
+    data = get_user(str(user_id))
+    if not data:
+        data = {}
     active_count = len(data.get('active_configs', []))
     text = f"👤 **حساب کاربری Hegzo VPN**\n\n━━━━━━━━━━━━━━━━━━━━━\n🆔 شناسه: `{user_id}`\n👤 نام: {m.from_user.first_name}\n📊 کانفیگ فعال: {active_count}\n👥 زیرمجموعه: {data.get('referrals', 0)}\n💰 اعتبار کیف پول: {data.get('credit', 0):,} تومان\n━━━━━━━━━━━━━━━━━━━━━"
     bot.reply_to(m, text, parse_mode='Markdown')
@@ -173,8 +177,8 @@ def profile(m):
 def invite(m):
     user_id = m.from_user.id
     link = f"https://t.me/{bot.get_me().username}?start={user_id}"
-    data = users.get(str(user_id), {})
-    text = f"🔥 **لینک دعوت شما**\n\n`{link}`\n\n👥 دعوت‌ها: {data.get('referrals', 0)}\n\n💰 هر دعوت = {REFERRAL_AMOUNT:,} تومان اعتبار"
+    data = get_user(str(user_id))
+    text = f"🔥 **لینک دعوت شما**\n\n`{link}`\n\n👥 دعوت‌ها: {data.get('referrals', 0) if data else 0}\n\n💰 هر دعوت = {REFERRAL_AMOUNT:,} تومان اعتبار"
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
@@ -216,8 +220,7 @@ def get_amount(m):
         if amount < 200000:
             bot.reply_to(m, "❌ حداقل شارژ 200,000 تومان است!")
             return
-        users[str(user_id)]['pending_charge'] = amount
-        save_users(users)
+        set_user(str(user_id), {'pending_charge': amount})
         bot.reply_to(m, f"✅ درخواست شارژ {amount:,} تومانی ثبت شد!\n\n📸 لطفا رسید واریز را بفرستید.")
     except:
         bot.reply_to(m, "❌ لطفا یک عدد معتبر وارد کنید!")
@@ -227,20 +230,21 @@ def receipt(m):
     user_id = m.from_user.id
     username = m.from_user.username or "بدون نام"
     file_id = m.photo[-1].file_id
-    pending = users.get(str(user_id), {}).get('pending_charge', 0)
+    user_data = get_user(str(user_id))
+    pending = user_data.get('pending_charge', 0) if user_data else 0
     if pending > 0:
         admin_text = f"💰 **درخواست شارژ!**\n👤 @{username}\n🆔 {user_id}\n💸 مبلغ: {pending:,} تومان"
         bot.send_photo(ADMIN_ID, file_id, caption=admin_text, reply_markup=admin_charge_buttons(user_id, pending), parse_mode='Markdown')
         bot.reply_to(m, f"✅ رسید شما دریافت شد!\n🕐 در حال بررسی توسط ادمین...")
-        users[str(user_id)]['pending_charge'] = 0
-        save_users(users)
+        set_user(str(user_id), {'pending_charge': 0})
     else:
         bot.reply_to(m, "❌ ابتدا از منوی اصلی روی 💳 شارژ کیف پول کلیک کن و مبلغ را وارد کن.")
 
 @bot.message_handler(func=lambda m: m.text == "📁 کانفیگ‌های من")
 def my_configs_list(m):
     user_id = m.from_user.id
-    cfg_list = users.get(str(user_id), {}).get('active_configs', [])
+    data = get_user(str(user_id))
+    cfg_list = data.get('active_configs', []) if data else []
     if not cfg_list:
         bot.reply_to(m, "📭 **کانفیگ فعالی ندارید!**\n\nبرای خرید کانفیگ از بخش 🛒 خرید کانفیگ اقدام کنید.", parse_mode='Markdown')
         return
@@ -258,7 +262,8 @@ def my_configs_list(m):
 def show_config_detail(call):
     user_id = call.from_user.id
     idx = int(call.data.split("_")[1])
-    cfg_list = users.get(str(user_id), {}).get('active_configs', [])
+    data = get_user(str(user_id))
+    cfg_list = data.get('active_configs', []) if data else []
     
     if idx >= len(cfg_list):
         bot.answer_callback_query(call.id, "❌ کانفیگ مورد نظر یافت نشد!", show_alert=True)
@@ -298,7 +303,8 @@ def show_config_detail(call):
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_configs")
 def back_to_configs(call):
     user_id = call.from_user.id
-    cfg_list = users.get(str(user_id), {}).get('active_configs', [])
+    data = get_user(str(user_id))
+    cfg_list = data.get('active_configs', []) if data else []
     
     if not cfg_list:
         try:
@@ -384,10 +390,11 @@ def buy_cmd(call):
     price = int(parts[-1])
     package = "_".join(parts[1:-1])
     
-    credit = users.get(str(user_id), {}).get('credit', 0)
+    data = get_user(str(user_id))
+    credit = data.get('credit', 0) if data else 0
+    
     if credit >= price:
-        users[str(user_id)]['credit'] -= price
-        save_users(users)
+        set_user(str(user_id), {'credit': credit - price})
         username = call.from_user.username or "بدون نام"
         admin_text = f"📸 **درخواست کانفیگ جدید!**\n\n👤 کاربر: @{username}\n🆔 آیدی: {user_id}\n📦 بسته: {package}\n💰 مبلغ: {price:,} تومان"
         bot.send_message(ADMIN_ID, admin_text, reply_markup=admin_buttons(user_id, package, price), parse_mode='Markdown')
@@ -452,9 +459,11 @@ def manual(call):
 
 def send_config(m, user_id, package, price):
     config = m.text
-    if str(user_id) in users:
-        users[str(user_id)].setdefault('active_configs', []).append({'package': package, 'config': config, 'date': str(datetime.now()), 'price': price})
-        save_users(users)
+    data = get_user(str(user_id))
+    if data:
+        active = data.get('active_configs', [])
+        active.append({'package': package, 'config': config, 'date': str(datetime.now()), 'price': price})
+        set_user(str(user_id), {'active_configs': active})
     bot.send_message(user_id, f"🎁 **کانفیگ اختصاصی شما ({package})**\n\n`{config}`\n\n🆔 پشتیبانی: @bintc", parse_mode='Markdown')
     bot.reply_to(m, "✅ کانفیگ با موفقیت ارسال شد")
 
@@ -468,10 +477,11 @@ def ch_ok(call):
     user_id = int(parts[2])
     amount = int(parts[3])
     
-    if str(user_id) in users:
-        users[str(user_id)]['credit'] += amount
-        save_users(users)
-        bot.send_message(user_id, f"✅ **شارژ {amount:,} تومانی تایید شد!**\n💰 اعتبار جدید: {users[str(user_id)]['credit']:,} تومان", parse_mode='Markdown')
+    data = get_user(str(user_id))
+    if data:
+        new_credit = data.get('credit', 0) + amount
+        set_user(str(user_id), {'credit': new_credit})
+        bot.send_message(user_id, f"✅ **شارژ {amount:,} تومانی تایید شد!**\n💰 اعتبار جدید: {new_credit:,} تومان", parse_mode='Markdown')
         bot.answer_callback_query(call.id, "✅ تایید شد")
         try:
             bot.edit_message_caption("✅ تایید شد", call.message.chat.id, call.message.message_id)
@@ -486,8 +496,7 @@ def ch_no(call):
     
     user_id = int(call.data.split("_")[2])
     
-    if str(user_id) in users:
-        bot.send_message(user_id, "❌ **درخواست شارژ رد شد!**\n\n📱 با پشتیبانی تماس بگیرید: @bintc", parse_mode='Markdown')
+    bot.send_message(user_id, "❌ **درخواست شارژ رد شد!**\n\n📱 با پشتیبانی تماس بگیرید: @bintc", parse_mode='Markdown')
     bot.answer_callback_query(call.id, "❌ رد شد")
     try:
         bot.edit_message_caption("❌ رد شد", call.message.chat.id, call.message.message_id)
@@ -498,12 +507,16 @@ def ch_no(call):
 def list_users(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
+    users = get_all_users()
     if not users:
         bot.reply_to(m, "📭 هیچ کاربری وجود ندارد.")
         return
     text = "📊 **لیست کاربران Hegzo VPN**\n\n"
-    for uid, data in users.items():
-        text += f"🆔 `{uid}` | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
+    for user in users:
+        uid = user.get('_id', '')
+        credit = user.get('credit', 0)
+        referrals = user.get('referrals', 0)
+        text += f"🆔 `{uid}` | اعتبار: {credit:,} | دعوت: {referrals}\n"
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(commands=['broadcast'])
@@ -519,7 +532,8 @@ def do_broadcast(m):
     msg = m.text
     success = 0
     fail = 0
-    for uid in users.keys():
+    for user in get_all_users():
+        uid = user.get('_id')
         try:
             bot.send_message(int(uid), f"📢 **پیام از ادمین Hegzo VPN**\n\n{msg}", parse_mode='Markdown')
             success += 1
@@ -537,8 +551,9 @@ def ban_user(m):
         if str(user_id) == ADMIN_ID:
             bot.reply_to(m, "❌ نمی‌توانید ادمین را بن کنید!")
             return
-        banned_users.add(str(user_id))
-        save_banned_users()
+        banned = get_banned()
+        banned.add(str(user_id))
+        set_banned(banned)
         try:
             bot.send_message(user_id, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @bintc")
         except:
@@ -553,9 +568,10 @@ def unban_user(m):
         return
     try:
         user_id = int(m.text.split()[1])
-        if str(user_id) in banned_users:
-            banned_users.discard(str(user_id))
-            save_banned_users()
+        banned = get_banned()
+        if str(user_id) in banned:
+            banned.discard(str(user_id))
+            set_banned(banned)
             bot.reply_to(m, f"✅ کاربر {user_id} از حالت مسدودیت خارج شد.")
         else:
             bot.reply_to(m, f"❌ کاربر {user_id} در لیست مسدود شده‌ها نیست.")
@@ -566,11 +582,12 @@ def unban_user(m):
 def list_banned(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
-    if not banned_users:
+    banned = get_banned()
+    if not banned:
         bot.reply_to(m, "📭 هیچ کاربر مسدود شده‌ای وجود ندارد.")
         return
     text = "🚫 **لیست کاربران مسدود شده:**\n\n"
-    for uid in banned_users:
+    for uid in banned:
         text += f"🆔 `{uid}`\n"
     bot.reply_to(m, text, parse_mode='Markdown')
 
@@ -582,13 +599,6 @@ def unknown(m):
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
 
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return "Hegzo VPN Bot is running!", 200
-
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
@@ -596,9 +606,6 @@ if __name__ == '__main__':
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
     bot.delete_webhook()
-    
-    # اجرای Flask در یک thread جداگانه
-    import threading
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
+    print("✅ Webhook deleted!")
     
     bot.infinity_polling()
