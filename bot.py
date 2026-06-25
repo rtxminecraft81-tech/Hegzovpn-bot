@@ -589,29 +589,18 @@ def unknown(m):
         bot.reply_to(m, "⛔ شما مسدود شده اید!")
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
-
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    # حذف Webhook و ریست offset
-    try:
-        bot.delete_webhook()
-        print("✅ Webhook deleted!")
-    except:
-        pass
-    
+    bot.delete_webhook()
     time.sleep(2)
     
-    try:
-        bot.get_updates(offset=-1, limit=1)
-        print("✅ Updates cleared!")
-    except:
-        pass
-    
     # اجرای Flask برای باز نگه داشتن پورت
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
+    from threading import Thread
+    Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     
     bot.infinity_polling()
+
