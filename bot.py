@@ -6,6 +6,12 @@ import time
 from datetime import datetime
 import pymongo
 
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Hegzo VPN Bot is running!", 200
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
     raise ValueError("❌ توکن پیدا نشد! BOT_TOKEN رو توی Render تنظیم کن.")
@@ -607,5 +613,9 @@ if __name__ == '__main__':
     
     bot.delete_webhook()
     print("✅ Webhook deleted!")
-    
+
+    # اجرای Flask در یک thread جداگانه برای باز نگه داشتن پورت
+    import threading
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
+
     bot.infinity_polling()
