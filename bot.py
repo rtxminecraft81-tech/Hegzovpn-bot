@@ -588,7 +588,7 @@ if __name__ == '__main__':
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    # حذف وب‌هوک و ریست offset برای جلوگیری از ارور 409
+    # حذف Webhook و ریست offset برای جلوگیری از ارور 409
     try:
         bot.delete_webhook()
         print("✅ Webhook deleted!")
