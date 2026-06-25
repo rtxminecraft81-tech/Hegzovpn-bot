@@ -5,13 +5,14 @@ import os
 import time
 from datetime import datetime
 import pymongo
-
 from flask import Flask
+
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Hegzo VPN Bot is running!", 200
+
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
     raise ValueError("❌ توکن پیدا نشد! BOT_TOKEN رو توی Render تنظیم کن.")
@@ -24,7 +25,6 @@ CARD_NUMBER = '5022291525516892'
 CARD_NAME = 'احمد خزایی'
 REFERRAL_AMOUNT = 5000
 
-# ========== اتصال به MongoDB ==========
 client = pymongo.MongoClient(MONGO_URI)
 db = client['hegzo_bot']
 users_col = db['users']
@@ -61,7 +61,6 @@ def init_user(user_id, username=""):
 def is_banned(user_id):
     return str(user_id) in get_banned()
 
-# ========== بقیه کد ==========
 bot = telebot.TeleBot(TOKEN)
 
 def is_member(user_id):
@@ -611,11 +610,15 @@ if __name__ == '__main__':
     print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("❌ گیمینگ، خانواده، VIP: غیرفعال")
     
-    bot.delete_webhook()
-    print("✅ Webhook deleted!")
-
-    # اجرای Flask در یک thread جداگانه برای باز نگه داشتن پورت
+    # حذف Webhook قبل از شروع
+    try:
+        bot.delete_webhook()
+        print("✅ Webhook deleted!")
+    except:
+        pass
+    
+    # اجرای Flask برای باز نگه داشتن پورت
     import threading
     threading.Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
-
+    
     bot.infinity_polling()
