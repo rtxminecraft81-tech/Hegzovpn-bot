@@ -75,61 +75,10 @@ def is_member(user_id):
     except:
         return False
 
-# =============== انیمیشن‌ها و ایموجی‌ها ===============
-EMOJIS = {
-    'loading': ['⏳', '🔄', '⚡', '💫', '✨'],
-    'success': ['✅', '🎉', '🎊', '✨', '💎', '🌟'],
-    'error': ['❌', '⛔', '🚫', '💢', '😅'],
-    'money': ['💰', '💸', '🤑', '💵', '💎'],
-    'fire': ['🔥', '❤️‍🔥', '⚡', '🌟', '💫'],
-    'vapor': ['💨', '🌫️', '☁️', '🌀', '🌪️'],
-    'cool': ['😎', '🕶️', '🤩', '😏', '🔥'],
-}
-
-ANIMATION_MESSAGES = {
-    'fade': [
-        '💨 در حال محو شدن...',
-        '🌫️ بخار شدن منو...',
-        '🌀 منو در حال پاک شدن...',
-        '✨ افکت ویژه...'
-    ],
-    'loading': [
-        '⏳ در حال آماده‌سازی...',
-        '🔄 بارگذاری...',
-        '⚡ سریع...',
-        '💫 لطفاً صبر کن...'
-    ]
-}
-
-def get_random_emoji(category):
-    return random.choice(EMOJIS.get(category, ['✨']))
-
-def get_animation_message(category):
-    return random.choice(ANIMATION_MESSAGES.get(category, ['🔄 در حال پردازش...']))
-
-def delete_with_vapor_effect(message):
-    """حذف پیام با افکت بخار"""
-    try:
-        for i in range(3):
-            vapor_text = f"{get_random_emoji('vapor')} {get_animation_message('fade')}"
-            msg = bot.send_message(message.chat.id, vapor_text)
-            time.sleep(0.3)
-            try:
-                bot.delete_message(msg.chat.id, msg.message_id)
-            except:
-                pass
-        try:
-            bot.delete_message(message.chat.id, message.message_id)
-        except:
-            pass
-    except:
-        pass
-
-def show_loading_animation(message, text):
-    """نمایش انیمیشن بارگذاری"""
-    loading_msg = bot.reply_to(message, f"{get_random_emoji('loading')} {text}")
-    time.sleep(1.2)
-    return loading_msg
+# =============== ایموجی‌ها ===============
+def get_emoji():
+    emojis = ['🔥', '⚡', '💎', '🌟', '✨', '🎯', '🚀', '💪']
+    return random.choice(emojis)
 
 # =============== کیبوردها ===============
 def main_keyboard():
@@ -137,7 +86,6 @@ def main_keyboard():
     markup.add("💳 شارژ کیف پول", "🛒 خرید کانفیگ")
     markup.add("📁 کانفیگ‌های من", "👤 حساب کاربری")
     markup.add("👥 دعوت از دوستان", "🆘 پشتیبانی")
-    markup.add("🏠 منوی اصلی")
     return markup
 
 def admin_buttons(user_id, package, price):
@@ -167,9 +115,9 @@ def buy_menu():
 
 def eco_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco25_180000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco50_250000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco100_450000"))
+    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان", callback_data="b_eco25_180000"))
+    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان", callback_data="b_eco50_250000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان", callback_data="b_eco100_450000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -184,11 +132,11 @@ def gaming_menu():
 
 def family_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("100 گیگ تک کاربره - 1 ماهه 199,000 تومان", callback_data="b_family1_199000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 2 کاربر - 1 ماهه 249,000 تومان", callback_data="b_family2_249000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 3 کاربر - 1 ماهه 299,000 تومان", callback_data="b_family3_299000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 4 کاربر - 1 ماهه 349,000 تومان", callback_data="b_family4_349000"))
-    markup.add(types.InlineKeyboardButton("10 روزه تک کاربر نامحدود - 99,000 تومان", callback_data="b_familyunlimited_99000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ تک کاربره - 199,000 تومان", callback_data="b_family1_199000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 2 کاربر - 249,000 تومان", callback_data="b_family2_249000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 3 کاربر - 299,000 تومان", callback_data="b_family3_299000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 4 کاربر - 349,000 تومان", callback_data="b_family4_349000"))
+    markup.add(types.InlineKeyboardButton("10 روزه نامحدود - 99,000 تومان", callback_data="b_familyunlimited_99000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -199,12 +147,6 @@ def start(message):
     if is_banned(user_id):
         bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @bintc")
         return
-    
-    # حذف پیام استارت با افکت
-    try:
-        delete_with_vapor_effect(message)
-    except:
-        pass
     
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
@@ -224,21 +166,8 @@ def start(message):
     if not is_member(user_id):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"))
-        
-        loading = show_loading_animation(message, f"💫 {get_animation_message('loading')}")
-        try:
-            bot.delete_message(loading.chat.id, loading.message_id)
-        except:
-            pass
-        
         bot.reply_to(message, f"❌ سلام {name} عزیز!\n\nلطفا در کانال عضو شوید.", reply_markup=markup)
         return
-    
-    loading = show_loading_animation(message, f"🔥 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
     
     welcome_text = f"""🔥 **به 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵 خوش اومدی** {name}! 🎉
 
@@ -251,32 +180,10 @@ def start(message):
     
     bot.reply_to(message, welcome_text, reply_markup=main_keyboard(), parse_mode='Markdown')
 
-@bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
-def back_home(m):
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"🔄 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
-    
-    bot.reply_to(m, 
-        f"🔥 **منوی اصلی 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**\n\n{get_random_emoji('fire')} آماده خدمت‌رسانی هستم!",
-        reply_markup=main_keyboard(),
-        parse_mode='Markdown'
-    )
-
 @bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
 def show_buy(m):
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"📦 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
-    
     bot.reply_to(m, 
-        f"📊 **انتخاب نوع سرویس**\n\n{get_random_emoji('fire')} بهترین سرویس رو انتخاب کن:",
+        f"📊 **انتخاب نوع سرویس**\n\n{get_emoji()} بهترین سرویس رو انتخاب کن:",
         reply_markup=buy_menu(),
         parse_mode='Markdown'
     )
@@ -286,13 +193,6 @@ def profile(m):
     user_id = m.from_user.id
     data = users.get(str(user_id), {})
     active_count = len(data.get('active_configs', []))
-    
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"📊 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
     
     text = f"""👤 **حساب کاربری 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**
 
@@ -304,7 +204,7 @@ def profile(m):
 💰 اعتبار کیف پول: {data.get('credit', 0):,} تومان
 ━━━━━━━━━━━━━━━━━━━━━
 
-{get_random_emoji('cool')} کاربر عزیز، همیشه در کنارتیم!"""
+😎 کاربر عزیز، همیشه در کنارتیم!"""
     
     bot.reply_to(m, text, parse_mode='Markdown')
 
@@ -314,13 +214,6 @@ def invite(m):
     link = f"https://t.me/{bot.get_me().username}?start={user_id}"
     data = users.get(str(user_id), {})
     
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"👥 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
-    
     text = f"""🔥 **لینک دعوت اختصاصی شما**
 
 `{link}`
@@ -328,7 +221,7 @@ def invite(m):
 👥 دعوت‌ها: {data.get('referrals', 0)}
 💰 هر دعوت = {REFERRAL_AMOUNT:,} تومان اعتبار
 
-{get_random_emoji('money')} هرچه دوستان بیشتری دعوت کنی، اعتبار بیشتری میگیری!"""
+💰 هرچه دوستان بیشتری دعوت کنی، اعتبار بیشتری میگیری!"""
     
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("📤 اشتراک‌گذاری لینک", url=f"https://t.me/share/url?url={link}&text=🔥 به ربات Hegzo VPN بپیوند! اینترنت آزاد و بدون محدودیت!"))
@@ -337,11 +230,10 @@ def invite(m):
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
 def support(m):
-    delete_with_vapor_effect(m)
     bot.reply_to(m, 
         f"""🆔 **پشتیبانی 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**
 
-{get_random_emoji('success')} ۲۴ ساعته پاسخگوی شما هستیم!
+✅ ۲۴ ساعته پاسخگوی شما هستیم!
 
 📱 @hegzosupport
 
@@ -352,13 +244,6 @@ def support(m):
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 def charge(m):
     user_id = m.from_user.id
-    
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"💳 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
     
     text = f"""💳 **شارژ کیف پول 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**
 
@@ -393,13 +278,8 @@ def get_amount(m):
     try:
         amount = int(m.text)
         if amount < 200000:
-            try:
-                delete_with_vapor_effect(m)
-            except:
-                pass
-            
             bot.reply_to(m, 
-                f"❌ **حداقل شارژ 200,000 تومان است!**\n\n{get_random_emoji('error')} لطفاً مبلغ بیشتر یا مساوی ۲۰۰,۰۰۰ تومان وارد کن.",
+                f"❌ **حداقل شارژ 200,000 تومان است!**\n\n😅 لطفاً مبلغ بیشتر یا مساوی ۲۰۰,۰۰۰ تومان وارد کن.",
                 parse_mode='Markdown'
             )
             return
@@ -407,24 +287,14 @@ def get_amount(m):
         users[str(user_id)]['pending_charge'] = amount
         save_users(users)
         
-        try:
-            delete_with_vapor_effect(m)
-        except:
-            pass
-        
         bot.reply_to(m, 
-            f"✅ **درخواست شارژ {amount:,} تومانی ثبت شد!**\n\n📸 لطفا رسید واریز را بفرستید.\n\n{get_random_emoji('loading')} منتظر تایید ادمین باشید.",
+            f"✅ **درخواست شارژ {amount:,} تومانی ثبت شد!**\n\n📸 لطفا رسید واریز را بفرستید.\n\n⏳ منتظر تایید ادمین باشید.",
             parse_mode='Markdown'
         )
         
     except:
-        try:
-            delete_with_vapor_effect(m)
-        except:
-            pass
-        
         bot.reply_to(m, 
-            f"{get_random_emoji('cool')} **اوه! انگار نه انگار!**\n\n{get_random_emoji('error')} لطفاً یه عدد معتبر وارد کن!\n\nمثلاً: 200000",
+            f"😎 **اوه! انگار نه انگار!**\n\n❌ لطفاً یه عدد معتبر وارد کن!\n\nمثلاً: 200000",
             parse_mode='Markdown'
         )
 
@@ -439,25 +309,15 @@ def receipt(m):
         admin_text = f"💰 **درخواست شارژ!**\n👤 @{username}\n🆔 {user_id}\n💸 مبلغ: {pending:,} تومان"
         bot.send_photo(ADMIN_ID, file_id, caption=admin_text, reply_markup=admin_charge_buttons(user_id, pending), parse_mode='Markdown')
         
-        try:
-            delete_with_vapor_effect(m)
-        except:
-            pass
-        
         bot.reply_to(m, 
-            f"✅ **رسید شما دریافت شد!**\n\n{get_random_emoji('loading')} در حال بررسی توسط ادمین...\n\n⏳ لطفاً چند دقیقه صبر کنید.",
+            f"✅ **رسید شما دریافت شد!**\n\n⏳ در حال بررسی توسط ادمین...\n\n⏳ لطفاً چند دقیقه صبر کنید.",
             parse_mode='Markdown'
         )
         users[str(user_id)]['pending_charge'] = 0
         save_users(users)
     else:
-        try:
-            delete_with_vapor_effect(m)
-        except:
-            pass
-        
         bot.reply_to(m, 
-            f"❌ **ابتدا از منوی اصلی روی 💳 شارژ کیف پول کلیک کن و مبلغ را وارد کن.**\n\n{get_random_emoji('error')}",
+            f"❌ **ابتدا از منوی اصلی روی 💳 شارژ کیف پول کلیک کن و مبلغ را وارد کن.**\n\n😅",
             parse_mode='Markdown'
         )
 
@@ -466,16 +326,9 @@ def my_configs_list(m):
     user_id = m.from_user.id
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
     
-    delete_with_vapor_effect(m)
-    loading = show_loading_animation(m, f"📁 {get_animation_message('loading')}")
-    try:
-        bot.delete_message(loading.chat.id, loading.message_id)
-    except:
-        pass
-    
     if not cfg_list:
         bot.reply_to(m, 
-            f"📭 **کانفیگ فعالی ندارید!**\n\n{get_random_emoji('error')} برای خرید کانفیگ از بخش 🛒 خرید کانفیگ اقدام کنید.",
+            f"📭 **کانفیگ فعالی ندارید!**\n\n❌ برای خرید کانفیگ از بخش 🛒 خرید کانفیگ اقدام کنید.",
             parse_mode='Markdown'
         )
         return
@@ -488,7 +341,7 @@ def my_configs_list(m):
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="back_main"))
     
     bot.reply_to(m, 
-        f"📦 **لیست کانفیگ‌های فعال شما**\n\n{get_random_emoji('fire')} {len(cfg_list)} کانفیگ فعال داری!\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:",
+        f"📦 **لیست کانفیگ‌های فعال شما**\n\n🔥 {len(cfg_list)} کانفیگ فعال داری!\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:",
         reply_markup=markup,
         parse_mode='Markdown'
     )
@@ -498,11 +351,6 @@ def show_config_detail(call):
     user_id = call.from_user.id
     idx = int(call.data.split("_")[1])
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
-    
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
     
     if idx >= len(cfg_list):
         bot.answer_callback_query(call.id, "❌ کانفیگ مورد نظر یافت نشد!", show_alert=True)
@@ -533,7 +381,7 @@ def show_config_detail(call):
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به لیست کانفیگ‌ها", callback_data="back_to_configs"))
     markup.add(types.InlineKeyboardButton("🏠 بازگشت به منوی اصلی", callback_data="back_main"))
     
-    bot.send_message(call.message.chat.id, text, reply_markup=markup, parse_mode='Markdown')
+    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_configs")
@@ -541,13 +389,8 @@ def back_to_configs(call):
     user_id = call.from_user.id
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     if not cfg_list:
-        bot.send_message(call.message.chat.id, "📭 کانفیگ فعالی ندارید!", parse_mode='Markdown')
+        bot.edit_message_text("📭 کانفیگ فعالی ندارید!", call.message.chat.id, call.message.message_id, parse_mode='Markdown')
         return
     
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -557,74 +400,27 @@ def back_to_configs(call):
         markup.add(types.InlineKeyboardButton(f"{i+1}. {package} ({date})", callback_data=f"showcfg_{i}"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="back_main"))
     
-    bot.send_message(call.message.chat.id, 
-        "📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:",
-        reply_markup=markup,
-        parse_mode='Markdown'
-    )
+    bot.edit_message_text("📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_eco")
 def lev_eco(call):
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
-    bot.send_message(call.message.chat.id, 
-        "💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:",
-        reply_markup=eco_menu(),
-        parse_mode='Markdown'
-    )
+    bot.edit_message_text("💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=eco_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_gaming")
 def lev_gaming(call):
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
-    bot.send_message(call.message.chat.id, 
-        "🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:",
-        reply_markup=gaming_menu(),
-        parse_mode='Markdown'
-    )
+    bot.edit_message_text("🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "lev_family")
 def lev_family(call):
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
-    bot.send_message(call.message.chat.id, 
-        "👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:",
-        reply_markup=family_menu(),
-        parse_mode='Markdown'
-    )
+    bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
-    bot.send_message(call.message.chat.id, 
-        "📊 انتخاب نوع سرویس:",
-        reply_markup=buy_menu()
-    )
+    bot.edit_message_text("📊 انتخاب نوع سرویس:", call.message.chat.id, call.message.message_id, reply_markup=buy_menu())
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_main")
 def back_main(call):
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
-    bot.send_message(call.message.chat.id, 
-        "🔥 منوی اصلی:",
-        reply_markup=main_keyboard()
-    )
+    bot.edit_message_text("🔥 منوی اصلی:", call.message.chat.id, call.message.message_id, reply_markup=main_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("b_"))
 def buy_cmd(call):
@@ -632,11 +428,6 @@ def buy_cmd(call):
     if is_banned(user_id):
         bot.answer_callback_query(call.id, "❌ شما مسدود شده اید!", show_alert=True)
         return
-    
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
     
     parts = call.data.split("_")
     price = int(parts[-1])
@@ -651,10 +442,11 @@ def buy_cmd(call):
         bot.send_message(ADMIN_ID, admin_text, reply_markup=admin_buttons(user_id, package, price), parse_mode='Markdown')
         
         bot.send_message(user_id, 
-            f"✅ **درخواست شما ثبت شد!**\n\n{get_random_emoji('loading')} منتظر تایید ادمین باشید.\n\n⏳ معمولاً کمتر از ۵ دقیقه طول می‌کشد.",
+            f"✅ **درخواست شما ثبت شد!**\n\n⏳ منتظر تایید ادمین باشید.\n\n⏳ معمولاً کمتر از ۵ دقیقه طول می‌کشد.",
             parse_mode='Markdown'
         )
         bot.answer_callback_query(call.id, "✅ ثبت شد")
+        bot.edit_message_text("✅ درخواست ثبت شد. منتظر تایید ادمین.", call.message.chat.id, call.message.message_id)
         
     else:
         need = price - credit
@@ -664,7 +456,7 @@ def buy_cmd(call):
 💰 اعتبار شما: {credit:,} تومان
 💸 نیاز به {need:,} تومان دیگر
 
-{get_random_emoji('money')} برای افزایش اعتبار از منوی اصلی روی 💳 شارژ کیف پول کلیک کن.
+💰 برای افزایش اعتبار از منوی اصلی روی 💳 شارژ کیف پول کلیک کن.
 
 💡 راهنمایی: می‌تونی با دعوت از دوستانت اعتبار رایگان بگیری!""",
             parse_mode='Markdown'
@@ -682,17 +474,12 @@ def confirm(call):
     package = parts[2]
     price = int(parts[3])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     bot.send_message(user_id, 
-        f"✅ **کانفیگ {package} تایید شد!**\n\n{get_random_emoji('success')} منتظر دریافت کانفیگ از ادمین باش.\n\n🆔 پشتیبانی: @bintc",
+        f"✅ **کانفیگ {package} تایید شد!**\n\n✅ منتظر دریافت کانفیگ از ادمین باش.\n\n🆔 پشتیبانی: @bintc",
         parse_mode='Markdown'
     )
     bot.answer_callback_query(call.id, "✅ تایید شد")
-    bot.send_message(call.message.chat.id, f"✅ تایید شد - {package}")
+    bot.edit_message_caption(f"✅ تایید شد - {package}", call.message.chat.id, call.message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("no_"))
 def reject(call):
@@ -702,15 +489,10 @@ def reject(call):
     
     user_id = int(call.data.split("_")[1])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     bot.send_message(user_id, 
         f"""❌ **درخواست شما رد شد!**
 
-{get_random_emoji('error')} لطفاً با پشتیبانی تماس بگیرید:
+❌ لطفاً با پشتیبانی تماس بگیرید:
 
 📱 @bintc
 
@@ -721,7 +503,7 @@ def reject(call):
         parse_mode='Markdown'
     )
     bot.answer_callback_query(call.id, "❌ رد شد")
-    bot.send_message(call.message.chat.id, "❌ رد شد")
+    bot.edit_message_caption("❌ رد شد", call.message.chat.id, call.message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_"))
 def manual(call):
@@ -734,22 +516,12 @@ def manual(call):
     package = parts[2]
     price = int(parts[3])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     bot.send_message(call.message.chat.id, f"📝 لطفا کانفیگ مورد نظر برای کاربر {user_id} (بسته: {package}) را بفرستید:")
     bot.register_next_step_handler(call.message, lambda m: send_config(m, user_id, package, price))
     bot.answer_callback_query(call.id)
 
 def send_config(m, user_id, package, price):
     config = m.text
-    
-    try:
-        delete_with_vapor_effect(m)
-    except:
-        pass
     
     if str(user_id) in users:
         users[str(user_id)].setdefault('active_configs', []).append({'package': package, 'config': config, 'date': str(datetime.now()), 'price': price})
@@ -760,7 +532,7 @@ def send_config(m, user_id, package, price):
 
 `{config}`
 
-{get_random_emoji('success')} کانفیگ با موفقیت ثبت شد!
+✅ کانفیگ با موفقیت ثبت شد!
 
 📅 تاریخ فعال‌سازی: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
@@ -779,11 +551,6 @@ def ch_ok(call):
     user_id = int(parts[2])
     amount = int(parts[3])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     if str(user_id) in users:
         users[str(user_id)]['credit'] += amount
         save_users(users)
@@ -793,13 +560,13 @@ def ch_ok(call):
 
 💰 اعتبار جدید: {users[str(user_id)]['credit']:,} تومان
 
-{get_random_emoji('success')} حالا می‌تونی کانفیگ مورد نظرت رو بخری!
+✅ حالا می‌تونی کانفیگ مورد نظرت رو بخری!
 
 🛒 از منوی اصلی روی خرید کانفیگ کلیک کن.""",
             parse_mode='Markdown'
         )
         bot.answer_callback_query(call.id, "✅ تایید شد")
-        bot.send_message(call.message.chat.id, "✅ تایید شد")
+        bot.edit_message_caption("✅ تایید شد", call.message.chat.id, call.message.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ch_no_"))
 def ch_no(call):
@@ -809,16 +576,11 @@ def ch_no(call):
     
     user_id = int(call.data.split("_")[2])
     
-    try:
-        delete_with_vapor_effect(call.message)
-    except:
-        pass
-    
     if str(user_id) in users:
         bot.send_message(user_id, 
             f"""❌ **درخواست شارژ رد شد!**
 
-{get_random_emoji('error')} لطفاً با پشتیبانی تماس بگیرید:
+❌ لطفاً با پشتیبانی تماس بگیرید:
 
 📱 @bintc
 
@@ -826,7 +588,7 @@ def ch_no(call):
             parse_mode='Markdown'
         )
     bot.answer_callback_query(call.id, "❌ رد شد")
-    bot.send_message(call.message.chat.id, "❌ رد شد")
+    bot.edit_message_caption("❌ رد شد", call.message.chat.id, call.message.message_id)
 
 @bot.message_handler(commands=['users'])
 def list_users(m):
@@ -915,13 +677,8 @@ def unknown(m):
         bot.reply_to(m, "⛔ شما مسدود شده اید!")
         return
     
-    try:
-        delete_with_vapor_effect(m)
-    except:
-        pass
-    
     bot.reply_to(m, 
-        f"{get_random_emoji('cool')} **اوه! این دکمه رو ندارم!**\n\n{get_random_emoji('error')} لطفا از دکمه‌های منوی اصلی استفاده کنید.\n\n{get_random_emoji('fire')} منو در دسترس است:",
+        f"😎 **اوه! این دکمه رو ندارم!**\n\n❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.\n\n🔥 منو در دسترس است:",
         reply_markup=main_keyboard(),
         parse_mode='Markdown'
     )
@@ -932,7 +689,6 @@ if __name__ == '__main__':
     print("✅ سرویس اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("✅ سرویس گیمینگ: 20-30-50-100 گیگ")
     print("✅ سرویس خانواده: 1 تا 4 کاربر + نامحدود 10 روزه")
-    print("🎬 انیمیشن‌های بخار و افکت‌های ویژه فعال شدند!")
     
     bot.delete_webhook()
     time.sleep(2)
