@@ -102,9 +102,8 @@ def admin_charge_buttons(user_id, amount):
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("💰 اقتصادی", callback_data="lev_eco"))
-    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 خانواده (غیرفعال)", callback_data="lev_family"))
-    markup.add(types.InlineKeyboardButton("🎮 گیمینگ (غیرفعال)", callback_data="lev_gaming"))
-    markup.add(types.InlineKeyboardButton("💎 VIP (غیرفعال)", callback_data="lev_vip"))
+    markup.add(types.InlineKeyboardButton("🎮 گیمینگ", callback_data="lev_gaming"))
+    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 خانواده", callback_data="lev_family"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main"))
     return markup
 
@@ -116,22 +115,22 @@ def eco_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-def family_menu():
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("100 گیگ - 750,000 تومان (غیرفعال)", callback_data="family_inactive"))
-    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
-    return markup
-
 def gaming_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("500 گیگ - 1,200,000 تومان (سرعت 20 مگابیت - 2 کاربر)", callback_data="gaming_inactive"))
+    markup.add(types.InlineKeyboardButton("20 گیگ - 200,000 تومان", callback_data="b_gaming20_200000"))
+    markup.add(types.InlineKeyboardButton("30 گیگ - 250,000 تومان", callback_data="b_gaming30_250000"))
+    markup.add(types.InlineKeyboardButton("50 گیگ - 400,000 تومان", callback_data="b_gaming50_400000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ - 700,000 تومان", callback_data="b_gaming100_700000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-def vip_menu():
+def family_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("50 گیگ - 300,000 تومان (غیرفعال)", callback_data="vip_inactive"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 500,000 تومان (غیرفعال)", callback_data="vip_inactive"))
+    markup.add(types.InlineKeyboardButton("100 گیگ تک کاربره - 1 ماهه 199,000 تومان", callback_data="b_family1_199000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 2 کاربر - 1 ماهه 249,000 تومان", callback_data="b_family2_249000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 3 کاربر - 1 ماهه 299,000 تومان", callback_data="b_family3_299000"))
+    markup.add(types.InlineKeyboardButton("100 گیگ 4 کاربر - 1 ماهه 349,000 تومان", callback_data="b_family4_349000"))
+    markup.add(types.InlineKeyboardButton("10 روزه تک کاربر نامحدود - 99,000 تومان", callback_data="b_familyunlimited_99000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -334,38 +333,19 @@ def lev_eco(call):
     except:
         bot.send_message(call.message.chat.id, "💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=eco_menu(), parse_mode='Markdown')
 
-@bot.callback_query_handler(func=lambda call: call.data == "lev_family")
-def lev_family(call):
-    try:
-        bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
-    except:
-        bot.send_message(call.message.chat.id, "👨‍👩‍👧‍👦 **بسته خانواده (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=family_menu(), parse_mode='Markdown')
-
 @bot.callback_query_handler(func=lambda call: call.data == "lev_gaming")
 def lev_gaming(call):
     try:
-        bot.edit_message_text("🎮 **سرور گیمینگ (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
+        bot.edit_message_text("🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
     except:
-        bot.send_message(call.message.chat.id, "🎮 **سرور گیمینگ (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=gaming_menu(), parse_mode='Markdown')
+        bot.send_message(call.message.chat.id, "🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=gaming_menu(), parse_mode='Markdown')
 
-@bot.callback_query_handler(func=lambda call: call.data == "lev_vip")
-def lev_vip(call):
+@bot.callback_query_handler(func=lambda call: call.data == "lev_family")
+def lev_family(call):
     try:
-        bot.edit_message_text("💎 **سرور ویژه VIP (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", call.message.chat.id, call.message.message_id, reply_markup=vip_menu(), parse_mode='Markdown')
+        bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
     except:
-        bot.send_message(call.message.chat.id, "💎 **سرور ویژه VIP (غیرفعال)**\n\n⚠️ این سرویس در حال حاضر غیرفعال می‌باشد.\n\nبه زودی فعال خواهد شد.\n\n🆔 @bintc", reply_markup=vip_menu(), parse_mode='Markdown')
-
-@bot.callback_query_handler(func=lambda call: call.data == "family_inactive")
-def family_inactive(call):
-    bot.answer_callback_query(call.id, "❌ سرویس خانواده موقتاً غیرفعال می‌باشد!", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "gaming_inactive")
-def gaming_inactive(call):
-    bot.answer_callback_query(call.id, "❌ سرویس گیمینگ موقتاً غیرفعال می‌باشد!", show_alert=True)
-
-@bot.callback_query_handler(func=lambda call: call.data == "vip_inactive")
-def vip_inactive(call):
-    bot.answer_callback_query(call.id, "❌ سرویس VIP موقتاً غیرفعال می‌باشد!", show_alert=True)
+        bot.send_message(call.message.chat.id, "👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=family_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
@@ -589,18 +569,18 @@ def unknown(m):
         bot.reply_to(m, "⛔ شما مسدود شده اید!")
         return
     bot.reply_to(m, "❌ لطفا از دکمه‌های منوی اصلی استفاده کنید.", reply_markup=main_keyboard())
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
-    print("✅ اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
-    print("❌ گیمینگ، خانواده، VIP: غیرفعال")
+    print("✅ سرویس اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
+    print("✅ سرویس گیمینگ: 20-30-50-100 گیگ")
+    print("✅ سرویس خانواده: 1 تا 4 کاربر + نامحدود 10 روزه")
     
     bot.delete_webhook()
     time.sleep(2)
     
-    # اجرای Flask برای باز نگه داشتن پورت
     from threading import Thread
     Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     
     bot.infinity_polling()
-
