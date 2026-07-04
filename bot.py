@@ -263,27 +263,93 @@ def admin_charge_buttons(user_id, amount):
 
 # ======================== دستورات و منوها ========================
 @bot.message_handler(commands=['start'])
-@membership_required
 def start(message):
     user_id = message.from_user.id
+    
+    # بررسی مسدودیت
+    if is_banned(user_id):
+        bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!")
+        return
+    
+    # بررسی عضویت در کانال
+    if not is_member(user_id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
+            types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
+        )
+        bot.reply_to(message, 
+            f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی **✅ تایید عضویت** کلیک کنید.",
+            reply_markup=markup,
+            parse_mode='Markdown'
+        )
+        return
+    
     loading_msg = loading_animation(message, "🔥 در حال آماده‌سازی...", 1.5)
     delete_with_animation(loading_msg, 0.3)
     
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
+    # ========== سیستم دعوت (Deep Link) ==========
     if len(message.text.split()) > 1:
         try:
-            ref = int(message.text.split()[1])
-            if ref != user_id and str(ref) in users and not users[str(user_id)].get('invited_by'):
-                users[str(ref)]['referrals'] += 1
-                users[str(user_id)]['invited_by'] = ref
-                users[str(ref)]['credit'] += REFERRAL_AMOUNT
-                save_users(users)
-                bot.send_message(ref, f"🎉 کاربر جدید با لینک شما عضو شد!\n💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!")
-                send_sticker(ref, 'money')
-        except:
-            pass
+            ref_param = message.text.split()[1]  # مثلاً start=hegzo_influencer
+            # پشتیبانی از هر دو حالت start=آیدی و start=یوزرنیم
+            try:
+                ref = int(ref_param)  # اگر عدد بود، آیدی عددی
+            except:
+                ref = ref_param  # اگر عدد نبود، یوزرنیم است
+            
+            # اگر ref با "start=" شروع شده بود، پاکش کن
+            if str(ref).startswith('start='):
+                ref = str(ref).replace('start=', '')
+            
+            # بررسی اینکه کاربر خودش رو دعوت نکرده باشه
+            if str(ref) != str(user_id):
+                # بررسی اینکه کاربر قبلاً توسط کسی دعوت نشده باشه
+                if not users.get(str(user_id), {}).get('invited_by'):
+                    # پیدا کردن دعوت‌کننده
+                    inviter = None
+                    
+                    # اول بررسی کن که ref یک آیدی عددی هست یا نه
+                    try:
+                        ref_int = int(ref)
+                        if str(ref_int) in users:
+                            inviter = str(ref_int)
+                    except:
+                        # ref یک یوزرنیم است
+                        for uid, data in users.items():
+                            if data.get('username', '').lower() == str(ref).lower():
+                                inviter = uid
+                                break
+                    
+                    if inviter and inviter != str(user_id):
+                        # ثبت دعوت
+                        users[str(user_id)]['invited_by'] = inviter
+                        users[inviter]['referrals'] += 1
+                        users[inviter]['credit'] += REFERRAL_AMOUNT
+                        save_users(users)
+                        
+                        # اطلاع به دعوت‌کننده
+                        bot.send_message(
+                            int(inviter), 
+                            f"🎉 **یک کاربر جدید با لینک شما عضو شد!**\n\n"
+                            f"👤 کاربر: {message.from_user.first_name}\n"
+                            f"💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!\n"
+                            f"📊 تعداد دعوت‌ها: {users[inviter].get('referrals', 0)}"
+                        )
+                        send_sticker(int(inviter), 'money')
+                        
+                        # پیام به کاربر جدید
+                        bot.send_message(
+                            user_id,
+                            f"🎉 **شما با لینک دعوت عضو شدید!**\n\n"
+                            f"🌟 دعوت‌کننده: @{users[inviter].get('username', 'کاربر')}\n"
+                            f"💰 {REFERRAL_AMOUNT:,} تومان هدیه به او تعلق گرفت."
+                        )
+        except Exception as e:
+            print(f"❌ خطا در پردازش لینک دعوت: {e}")
     
     send_sticker(user_id, 'welcome')
     bot.reply_to(message, 
@@ -911,6 +977,7 @@ if __name__ == '__main__':
     print("✅ اتصال به Supabase برای ذخیره‌سازی دائمی فعال شد!")
     print("✅ عضویت در کانال برای همه عملیات‌ها الزامی شد!")
     print("✅ دکمه تایید عضویت اضافه شد!")
+    print("✅ سیستم دعوت (Deep Link) با پشتیبانی از آیدی عددی و یوزرنیم فعال شد!")
     print("✅ نام کاربری (با @) در پیام‌های ادمین نمایش داده می‌شود!")
     print("✅ دستور broadcast با قابلیت ارسال عکس، ویدیو، گیف، استیکر، فایل و متن فعال شد!")
     print("✅ سرویس‌های جدید (اینفلوئنسر، گشت‌وگذار، گیمینگ، VIP، مولتی‌لوکیشن) اضافه شدند!")
