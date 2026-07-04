@@ -7,6 +7,7 @@ from datetime import datetime
 from flask import Flask
 import threading
 import random
+from supabase import create_client, Client
 
 app = Flask(__name__)
 
@@ -24,62 +25,38 @@ CARD_NUMBER = '5022291525516892'
 CARD_NAME = 'احمد خزایی'
 REFERRAL_AMOUNT = 5000
 
-bot = telebot.TeleBot(TOKEN)
-USER_DB = 'users.json'
+# ======================== اتصال به Supabase ========================
+SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
+SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# استیکرهای خفن
-STICKERS = {
-    'welcome': 'CAACAgQAAxkBAAE...',  # استیکر خوش‌آمدگویی
-    'success': 'CAACAgQAAxkBAAE...',   # استیکر موفقیت
-    'error': 'CAACAgQAAxkBAAE...',     # استیکر خطا
-    'money': 'CAACAgQAAxkBAAE...',     # استیکر پول
-    'fire': 'CAACAgQAAxkBAAE...',      # استیکر آتیش
-    'cool': 'CAACAgQAAxkBAAE...',      # استیکر عینکی
-}
-
-# لیست ایموجی‌های متحرک
-EMOJIS = {
-    'loading': ['⏳', '🔄', '⚡', '💫'],
-    'success': ['✅', '🎉', '🎊', '✨', '💎'],
-    'error': ['❌', '⛔', '🚫', '💢'],
-    'money': ['💰', '💸', '🤑', '💵'],
-    'fire': ['🔥', '❤️‍🔥', '⚡', '🌟'],
-}
-
-def get_random_emoji(category):
-    return random.choice(EMOJIS.get(category, ['✨']))
-
-def loading_animation(message, text, duration=2):
-    """ارسال انیمیشن بارگذاری"""
-    msg = bot.reply_to(message, f"{get_random_emoji('loading')} {text}")
-    time.sleep(duration)
-    return msg
-
-def delete_with_animation(message, delay=0.5):
-    """حذف پیام با انیمیشن"""
-    try:
-        time.sleep(delay)
-        bot.delete_message(message.chat.id, message.message_id)
-    except:
-        pass
-
-def send_sticker(user_id, sticker_key):
-    """ارسال استیکر"""
-    try:
-        if sticker_key in STICKERS:
-            bot.send_sticker(user_id, STICKERS[sticker_key])
-    except:
-        pass
-
+# ======================== توابع ذخیره‌سازی ========================
 def load_users():
-    if os.path.exists(USER_DB):
-        with open(USER_DB, 'r') as f:
-            return json.load(f)
-    return {}
+    response = supabase.table("users").select("*").execute()
+    users = {}
+    for row in response.data:
+        users[row['user_id']] = {
+            'username': row.get('username', ''),
+            'credit': row.get('credit', 0),
+            'active_configs': row.get('active_configs', []),
+            'pending_charge': row.get('pending_charge', 0),
+            'invited_by': row.get('invited_by'),
+            'referrals': row.get('referrals', 0),
+            'joined_at': row.get('joined_at', '')
+        }
+    return users
 
 def save_users(users):
-    with open(USER_DB, 'w') as f:
-        json.dump(users, f, indent=4)
+    for user_id, data in users.items():
+        supabase.table("users").upsert({
+            "user_id": user_id,
+            "username": data.get('username', ''),
+            "credit": data.get('credit', 0),
+            "active_configs": data.get('active_configs', []),
+            "pending_charge": data.get('pending_charge', 0),
+            "invited_by": data.get('invited_by'),
+            "referrals": data.get('referrals', 0)
+        }).execute()
 
 def init_user(user_id, username=""):
     if str(user_id) not in users:
@@ -94,6 +71,8 @@ def init_user(user_id, username=""):
         }
         save_users(users)
 
+# ======================== بوت ========================
+bot = telebot.TeleBot(TOKEN)
 users = load_users()
 banned_users = set()
 
@@ -119,23 +98,45 @@ def is_member(user_id):
     except:
         return False
 
-def animated_keyboard(text, keyboard_type='main'):
-    """کیبورد با انیمیشن و افکت"""
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    
-    if keyboard_type == 'main':
-        markup.add("💳 شارژ کیف پول", "🛒 خرید کانفیگ")
-        markup.add("📁 کانفیگ‌های من", "👤 حساب کاربری")
-        markup.add("👥 دعوت از دوستان", "🆘 پشتیبانی")
-        markup.add("🏠 منوی اصلی")
-    elif keyboard_type == 'payment':
-        markup.add("💰 شارژ با کارت", "🔄 شارژ با رمز")
-        markup.add("🔙 بازگشت")
-    elif keyboard_type == 'config':
-        markup.add("📦 خرید بسته جدید", "📁 کانفیگ‌های فعال")
-        markup.add("🔙 بازگشت")
-    
-    return markup
+# ======================== استیکرها و ایموجی‌ها ========================
+STICKERS = {
+    'welcome': 'CAACAgQAAxkBAAE...',
+    'success': 'CAACAgQAAxkBAAE...',
+    'error': 'CAACAgQAAxkBAAE...',
+    'money': 'CAACAgQAAxkBAAE...',
+    'fire': 'CAACAgQAAxkBAAE...',
+    'cool': 'CAACAgQAAxkBAAE...',
+}
+
+EMOJIS = {
+    'loading': ['⏳', '🔄', '⚡', '💫'],
+    'success': ['✅', '🎉', '🎊', '✨', '💎'],
+    'error': ['❌', '⛔', '🚫', '💢'],
+    'money': ['💰', '💸', '🤑', '💵'],
+    'fire': ['🔥', '❤️‍🔥', '⚡', '🌟'],
+}
+
+def get_random_emoji(category):
+    return random.choice(EMOJIS.get(category, ['✨']))
+
+def loading_animation(message, text, duration=2):
+    msg = bot.reply_to(message, f"{get_random_emoji('loading')} {text}")
+    time.sleep(duration)
+    return msg
+
+def delete_with_animation(message, delay=0.5):
+    try:
+        time.sleep(delay)
+        bot.delete_message(message.chat.id, message.message_id)
+    except:
+        pass
+
+def send_sticker(user_id, sticker_key):
+    try:
+        if sticker_key in STICKERS:
+            bot.send_sticker(user_id, STICKERS[sticker_key])
+    except:
+        pass
 
 def main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -143,23 +144,6 @@ def main_keyboard():
     markup.add("📁 کانفیگ‌های من", "👤 حساب کاربری")
     markup.add("👥 دعوت از دوستان", "🆘 پشتیبانی")
     markup.add("🏠 منوی اصلی")
-    return markup
-
-def admin_buttons(user_id, package, price):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("✅ تایید", callback_data=f"ok_{user_id}_{package}_{price}"),
-        types.InlineKeyboardButton("❌ رد", callback_data=f"no_{user_id}"),
-        types.InlineKeyboardButton("✏️ ارسال دستی", callback_data=f"send_{user_id}_{package}_{price}")
-    )
-    return markup
-
-def admin_charge_buttons(user_id, amount):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("✅ تایید شارژ", callback_data=f"ch_ok_{user_id}_{amount}"),
-        types.InlineKeyboardButton("❌ رد شارژ", callback_data=f"ch_no_{user_id}")
-    )
     return markup
 
 def buy_menu():
@@ -197,6 +181,24 @@ def family_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
+def admin_buttons(user_id, package, price):
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("✅ تایید", callback_data=f"ok_{user_id}_{package}_{price}"),
+        types.InlineKeyboardButton("❌ رد", callback_data=f"no_{user_id}"),
+        types.InlineKeyboardButton("✏️ ارسال دستی", callback_data=f"send_{user_id}_{package}_{price}")
+    )
+    return markup
+
+def admin_charge_buttons(user_id, amount):
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("✅ تایید شارژ", callback_data=f"ch_ok_{user_id}_{amount}"),
+        types.InlineKeyboardButton("❌ رد شارژ", callback_data=f"ch_no_{user_id}")
+    )
+    return markup
+
+# ======================== دستورات و منوها ========================
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -204,7 +206,6 @@ def start(message):
         bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @bintc")
         return
     
-    # انیمیشن خوش‌آمدگویی
     loading_msg = loading_animation(message, "🔥 در حال آماده‌سازی...", 1.5)
     delete_with_animation(loading_msg, 0.3)
     
@@ -246,10 +247,8 @@ def start(message):
 
 @bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
 def back_home(m):
-    # انیمیشن بازگشت
     loading_msg = loading_animation(m, "🔄 در حال بازگشت به منوی اصلی...", 1)
     delete_with_animation(loading_msg, 0.3)
-    
     bot.reply_to(m, 
         f"🔥 **منوی اصلی 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**\n\n{get_random_emoji('fire')} آماده خدمت‌رسانی هستم!",
         reply_markup=main_keyboard()
@@ -259,7 +258,6 @@ def back_home(m):
 def show_buy(m):
     loading_msg = loading_animation(m, "📦 در حال بارگذاری سرویس‌ها...", 1)
     delete_with_animation(loading_msg, 0.3)
-    
     bot.reply_to(m, 
         f"📊 **انتخاب نوع سرویس**\n\n{get_random_emoji('fire')} بهترین سرویس رو انتخاب کن:",
         reply_markup=buy_menu(),
@@ -421,6 +419,7 @@ def my_configs_list(m):
         parse_mode='Markdown'
     )
 
+# ======================== Callback ها ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("showcfg_"))
 def show_config_detail(call):
     user_id = call.from_user.id
@@ -700,6 +699,7 @@ def ch_no(call):
     except:
         pass
 
+# ======================== دستورات ادمین ========================
 @bot.message_handler(commands=['users'])
 def list_users(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -792,18 +792,20 @@ def unknown(m):
         parse_mode='Markdown'
     )
 
+# ======================== اجرای ربات ========================
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
+    print("✅ اتصال به Supabase برای ذخیره‌سازی دائمی فعال شد!")
     print("✅ سرویس اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
     print("✅ سرویس گیمینگ: 20-30-50-100 گیگ")
     print("✅ سرویس خانواده: 1 تا 4 کاربر + نامحدود 10 روزه")
     print("🎬 انیمیشن‌ها و افکت‌های ویژه فعال شدند!")
-    
+
     bot.delete_webhook()
     time.sleep(2)
-    
+
     from threading import Thread
     Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
-    
+
     bot.infinity_polling()
