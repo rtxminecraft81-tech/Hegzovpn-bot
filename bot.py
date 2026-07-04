@@ -23,7 +23,7 @@ ADMIN_ID = '6795169616'
 CHANNEL_USERNAME = '@hegzo_vpn_channle'
 CARD_NUMBER = '5022291525516892'
 CARD_NAME = 'احمد خزایی'
-REFERRAL_AMOUNT = 5000
+REFERRAL_COMMISSION = 0.1  # 10% کمیسیون به ازای هر خرید
 
 # ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
@@ -42,7 +42,8 @@ def load_users():
             'pending_charge': row.get('pending_charge', 0),
             'invited_by': row.get('invited_by'),
             'referrals': row.get('referrals', 0),
-            'joined_at': row.get('joined_at', '')
+            'joined_at': row.get('joined_at', ''),
+            'commission': row.get('commission', 0)
         }
     return users
 
@@ -55,7 +56,8 @@ def save_users(users):
             "active_configs": data.get('active_configs', []),
             "pending_charge": data.get('pending_charge', 0),
             "invited_by": data.get('invited_by'),
-            "referrals": data.get('referrals', 0)
+            "referrals": data.get('referrals', 0),
+            "commission": data.get('commission', 0)
         }).execute()
 
 def init_user(user_id, username=""):
@@ -67,7 +69,8 @@ def init_user(user_id, username=""):
             'pending_charge': 0,
             'invited_by': None,
             'referrals': 0,
-            'joined_at': str(datetime.now())
+            'joined_at': str(datetime.now()),
+            'commission': 0
         }
         save_users(users)
 
@@ -253,12 +256,11 @@ def admin_buttons(user_id, package, price):
     )
     return markup
 
-def admin_charge_buttons(user_id, amount):
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        types.InlineKeyboardButton("✅ تایید شارژ", callback_data=f"ch_ok_{user_id}_{amount}"),
-        types.InlineKeyboardButton("❌ رد شارژ", callback_data=f"ch_no_{user_id}")
-    )
+# ======================== منوی جدید شارژ ========================
+def charge_menu():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton("💳 کارت به کارت", callback_data="charge_card"))
+    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main"))
     return markup
 
 # ======================== دستورات و منوها ========================
@@ -266,12 +268,10 @@ def admin_charge_buttons(user_id, amount):
 def start(message):
     user_id = message.from_user.id
     
-    # بررسی مسدودیت
     if is_banned(user_id):
         bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!")
         return
     
-    # بررسی عضویت در کانال
     if not is_member(user_id):
         markup = types.InlineKeyboardMarkup()
         markup.add(
@@ -291,62 +291,41 @@ def start(message):
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
-    # ========== سیستم دعوت (Deep Link) ==========
+    # سیستم دعوت (فقط برای ثبت دعوت‌کننده، بدون پاداش)
     if len(message.text.split()) > 1:
         try:
-            ref_param = message.text.split()[1]  # مثلاً start=hegzo_influencer
-            # پشتیبانی از هر دو حالت start=آیدی و start=یوزرنیم
+            ref_param = message.text.split()[1]
             try:
-                ref = int(ref_param)  # اگر عدد بود، آیدی عددی
+                ref = int(ref_param)
             except:
-                ref = ref_param  # اگر عدد نبود، یوزرنیم است
+                ref = ref_param
             
-            # اگر ref با "start=" شروع شده بود، پاکش کن
             if str(ref).startswith('start='):
                 ref = str(ref).replace('start=', '')
             
-            # بررسی اینکه کاربر خودش رو دعوت نکرده باشه
             if str(ref) != str(user_id):
-                # بررسی اینکه کاربر قبلاً توسط کسی دعوت نشده باشه
                 if not users.get(str(user_id), {}).get('invited_by'):
-                    # پیدا کردن دعوت‌کننده
                     inviter = None
-                    
-                    # اول بررسی کن که ref یک آیدی عددی هست یا نه
                     try:
                         ref_int = int(ref)
                         if str(ref_int) in users:
                             inviter = str(ref_int)
                     except:
-                        # ref یک یوزرنیم است
                         for uid, data in users.items():
                             if data.get('username', '').lower() == str(ref).lower():
                                 inviter = uid
                                 break
                     
                     if inviter and inviter != str(user_id):
-                        # ثبت دعوت
                         users[str(user_id)]['invited_by'] = inviter
                         users[inviter]['referrals'] += 1
-                        users[inviter]['credit'] += REFERRAL_AMOUNT
                         save_users(users)
                         
-                        # اطلاع به دعوت‌کننده
                         bot.send_message(
                             int(inviter), 
                             f"🎉 **یک کاربر جدید با لینک شما عضو شد!**\n\n"
                             f"👤 کاربر: {message.from_user.first_name}\n"
-                            f"💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!\n"
                             f"📊 تعداد دعوت‌ها: {users[inviter].get('referrals', 0)}"
-                        )
-                        send_sticker(int(inviter), 'money')
-                        
-                        # پیام به کاربر جدید
-                        bot.send_message(
-                            user_id,
-                            f"🎉 **شما با لینک دعوت عضو شدید!**\n\n"
-                            f"🌟 دعوت‌کننده: @{users[inviter].get('username', 'کاربر')}\n"
-                            f"💰 {REFERRAL_AMOUNT:,} تومان هدیه به او تعلق گرفت."
                         )
         except Exception as e:
             print(f"❌ خطا در پردازش لینک دعوت: {e}")
@@ -406,7 +385,10 @@ def profile(m):
 📊 کانفیگ فعال: {active_count}
 👥 زیرمجموعه: {data.get('referrals', 0)}
 💰 اعتبار کیف پول: {data.get('credit', 0):,} تومان
+💰 کمیسیون累积: {data.get('commission', 0):,} تومان
 ━━━━━━━━━━━━━━━━━━━━━
+
+💡 با دعوت از دوستانت، از هر خرید آنها ۱۰% کمیسیون دریافت کن!
 
 {get_random_emoji('success')} کاربر عزیز، همیشه در کنارتیم!"""
     
@@ -425,9 +407,11 @@ def invite(m):
 `{link}`
 
 👥 دعوت‌ها: {data.get('referrals', 0)}
-💰 هر دعوت = {REFERRAL_AMOUNT:,} تومان اعتبار
+💰 کمیسیون累计: {data.get('commission', 0):,} تومان
 
-{get_random_emoji('money')} هرچه دوستان بیشتری دعوت کنی، اعتبار بیشتری میگیری!"""
+💎 **با هر خرید دوستانت، ۱۰٪ کمیسیون دریافت کن!**
+
+هر چه دوستان بیشتری دعوت کنی، درآمد بیشتری خواهی داشت!"""
     
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("📤 اشتراک‌گذاری لینک", url=f"https://t.me/share/url?url={link}&text=🔥 به ربات Hegzo VPN بپیوند! اینترنت آزاد و بدون محدودیت!"))
@@ -453,72 +437,34 @@ def support(m):
 @membership_required
 def charge(m):
     user_id = m.from_user.id
-    
-    text = f"""💳 **شارژ کیف پول 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💰 **حداقل شارژ:** 200,000 تومان
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💳 **شماره کارت:** `{CARD_NUMBER}`
-🏦 **به نام:** {CARD_NAME}
-
-📌 **راهنمای واریز:**
-1️⃣ مبلغ مورد نظر را به کارت بالا واریز کنید
-2️⃣ از رسید واریز اسکرین‌شات بگیرید
-3️⃣ همینجا در ربات عکس رسید را بفرستید
-4️⃣ ادمین رسید را بررسی کرده و کیف پول شما را شارژ می‌کند
-
-⚠️ **نکات مهم:**
-• پس از واریز، حتما رسید را بفرستید
-• کد پیگیری رسید را برای پیگیری نگهداری کنید
-
-🆔 پشتیبانی: @bintc
-━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📝 لطفا مبلغ مورد نظر را وارد کنید (به تومان):"""
-    
     send_sticker(user_id, 'money')
-    bot.reply_to(m, text, parse_mode='Markdown')
-    bot.register_next_step_handler(m, get_amount)
+    bot.reply_to(m, 
+        f"💳 **شارژ کیف پول 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**\n\n"
+        f"{get_random_emoji('money')} لطفاً روش شارژ مورد نظر خود را انتخاب کنید:",
+        reply_markup=charge_menu(),
+        parse_mode='Markdown'
+    )
 
-def get_amount(m):
-    user_id = m.from_user.id
-    try:
-        amount = int(m.text)
-        if amount < 200000:
-            bot.reply_to(m, f"❌ **حداقل شارژ 200,000 تومان است!**\n\n{get_random_emoji('error')} لطفاً مبلغ بیشتر یا مساوی ۲۰۰,۰۰۰ تومان وارد کن.", parse_mode='Markdown')
-            return
-        users[str(user_id)]['pending_charge'] = amount
-        save_users(users)
-        bot.reply_to(m, f"✅ **درخواست شارژ {amount:,} تومانی ثبت شد!**\n\n📸 لطفا رسید واریز را بفرستید.\n\n{get_random_emoji('loading')} منتظر تایید ادمین باشید.")
-    except:
-        bot.reply_to(m, 
-            f"😎 **اوه! انگار نه انگار!**\n\n{get_random_emoji('error')} لطفاً یه عدد معتبر وارد کن!\n\nمثلاً: 200000",
-            parse_mode='Markdown'
-        )
+@bot.callback_query_handler(func=lambda call: call.data == "charge_card")
+def charge_card(call):
+    user_id = call.from_user.id
+    text = f"""💳 **اطلاعات کارت به کارت**
 
-@bot.message_handler(content_types=['photo'])
-@membership_required
-def receipt(m):
-    user_id = m.from_user.id
-    username = m.from_user.username or "بدون نام"
-    file_id = m.photo[-1].file_id
-    pending = users.get(str(user_id), {}).get('pending_charge', 0)
+━━━━━━━━━━━━━━━━━━━━━
+🏦 **شماره کارت:** `{CARD_NUMBER}`
+👤 **به نام:** {CARD_NAME}
+━━━━━━━━━━━━━━━━━━━━━
+
+📌 **مراحل واریز:**
+1️⃣ مبلغ مورد نظر را به کارت بالا واریز کنید.
+2️⃣ پس از واریز، از قسمت «🛒 خرید کانفیگ» اقدام به خرید کنید.
+3️⃣ مبلغ خرید از کیف پول شما کسر خواهد شد.
+
+⚠️ توجه: پس از واریز، نیازی به ارسال رسید نیست و مبلغ به صورت خودکار به کیف پول شما اضافه می‌شود.
+
+🆔 پشتیبانی: @hegzosupport"""
     
-    if pending > 0:
-        admin_text = f"💰 **درخواست شارژ!**\n👤 @{username}\n🆔 {user_id}\n💸 مبلغ: {pending:,} تومان"
-        bot.send_photo(ADMIN_ID, file_id, caption=admin_text, reply_markup=admin_charge_buttons(user_id, pending), parse_mode='Markdown')
-        
-        loading_msg = loading_animation(m, "📤 در حال ارسال رسید...", 1)
-        delete_with_animation(loading_msg, 0.3)
-        
-        bot.reply_to(m, f"✅ **رسید شما دریافت شد!**\n\n{get_random_emoji('loading')} در حال بررسی توسط ادمین...\n\n⏳ لطفاً چند دقیقه صبر کنید.")
-        users[str(user_id)]['pending_charge'] = 0
-        save_users(users)
-        send_sticker(user_id, 'success')
-    else:
-        bot.reply_to(m, f"❌ **ابتدا از منوی اصلی روی 💳 شارژ کیف پول کلیک کن و مبلغ را وارد کن.**\n\n{get_random_emoji('error')}", parse_mode='Markdown')
+    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "📁 کانفیگ‌های من")
 @membership_required
@@ -618,7 +564,7 @@ def show_config_detail(call):
 💡 **نحوه استفاده:**
 روی لینک بالا فشار طولانی بدید و Copy رو بزنید، سپس در برنامه V2rayNG یا NPV Tunnel وارد کنید.
 ━━━━━━━━━━━━━━━━━━━━━
-🆔 پشتیبانی: @bintc"""
+🆔 پشتیبانی: @hegzosupport"""
     
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔙 بازگشت به لیست کانفیگ‌ها", callback_data="back_to_configs"))
@@ -690,6 +636,23 @@ def buy_cmd(call):
         users[str(user_id)]['credit'] -= price
         save_users(users)
         username = call.from_user.username or "بدون نام"
+        
+        # ثبت کمیسیون برای دعوت‌کننده (در صورت وجود)
+        inviter_id = users.get(str(user_id), {}).get('invited_by')
+        if inviter_id:
+            commission_amount = int(price * REFERRAL_COMMISSION)
+            users[inviter_id]['commission'] = users[inviter_id].get('commission', 0) + commission_amount
+            save_users(users)
+            bot.send_message(
+                int(inviter_id),
+                f"💎 **کمیسیون جدید!**\n\n"
+                f"👤 کاربر: @{username}\n"
+                f"📦 بسته: {package}\n"
+                f"💰 مبلغ خرید: {price:,} تومان\n"
+                f"💸 کمیسیون شما (۱۰%): {commission_amount:,} تومان\n\n"
+                f"📊 کمیسیون کل: {users[inviter_id].get('commission', 0):,} تومان"
+            )
+        
         admin_text = f"📸 **درخواست کانفیگ جدید!**\n\n👤 کاربر: @{username}\n🆔 آیدی: {user_id}\n📦 بسته: {package}\n💰 مبلغ: {price:,} تومان"
         bot.send_message(ADMIN_ID, admin_text, reply_markup=admin_buttons(user_id, package, price), parse_mode='Markdown')
         
@@ -708,9 +671,9 @@ def buy_cmd(call):
 💰 اعتبار شما: {credit:,} تومان
 💸 نیاز به {need:,} تومان دیگر
 
-{get_random_emoji('money')} برای افزایش اعتبار از منوی اصلی روی 💳 شارژ کیف پول کلیک کن.
+💳 برای افزایش اعتبار، از منوی اصلی روی «💳 شارژ کیف پول» کلیک کن و اطلاعات کارت به کارت رو دریافت کن.
 
-💡 راهنمایی: می‌تونی با دعوت از دوستانت اعتبار رایگان بگیری!""",
+💡 راهنمایی: با دعوت از دوستانت، از هر خرید آنها ۱۰٪ کمیسیون دریافت کن!""",
             parse_mode='Markdown'
         )
         bot.answer_callback_query(call.id, "❌ اعتبار کافی نیست")
@@ -726,7 +689,7 @@ def confirm(call):
     package = parts[2]
     price = int(parts[3])
     
-    bot.send_message(user_id, f"✅ **کانفیگ {package} تایید شد!**\n\n{get_random_emoji('success')} منتظر دریافت کانفیگ از ادمین باش.\n\n🆔 پشتیبانی: @bintc", parse_mode='Markdown')
+    bot.send_message(user_id, f"✅ **کانفیگ {package} تایید شد!**\n\n{get_random_emoji('success')} منتظر دریافت کانفیگ از ادمین باش.\n\n🆔 پشتیبانی: @hegzosupport", parse_mode='Markdown')
     bot.answer_callback_query(call.id, "✅ تایید شد")
     send_sticker(user_id, 'success')
     try:
@@ -747,7 +710,7 @@ def reject(call):
 
 {get_random_emoji('error')} لطفاً با پشتیبانی تماس بگیرید:
 
-📱 @bintc
+📱 @hegzosupport
 
 💡 دلیل احتمالی:
 • اطلاعات ناقص
@@ -792,66 +755,10 @@ def send_config(m, user_id, package, price):
 
 📅 تاریخ فعال‌سازی: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 
-🆔 پشتیبانی: @bintc""",
+🆔 پشتیبانی: @hegzosupport""",
         parse_mode='Markdown'
     )
     bot.reply_to(m, "✅ کانفیگ با موفقیت ارسال شد")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("ch_ok_"))
-def ch_ok(call):
-    if str(call.from_user.id) != ADMIN_ID:
-        bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
-        return
-    
-    parts = call.data.split("_")
-    user_id = int(parts[2])
-    amount = int(parts[3])
-    
-    if str(user_id) in users:
-        users[str(user_id)]['credit'] += amount
-        save_users(users)
-        
-        send_sticker(user_id, 'money')
-        bot.send_message(user_id, 
-            f"""✅ **شارژ {amount:,} تومانی تایید شد!**
-
-💰 اعتبار جدید: {users[str(user_id)]['credit']:,} تومان
-
-{get_random_emoji('success')} حالا می‌تونی کانفیگ مورد نظرت رو بخری!
-
-🛒 از منوی اصلی روی خرید کانفیگ کلیک کن.""",
-            parse_mode='Markdown'
-        )
-        bot.answer_callback_query(call.id, "✅ تایید شد")
-        try:
-            bot.edit_message_caption("✅ تایید شد", call.message.chat.id, call.message.message_id)
-        except:
-            pass
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("ch_no_"))
-def ch_no(call):
-    if str(call.from_user.id) != ADMIN_ID:
-        bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
-        return
-    
-    user_id = int(call.data.split("_")[2])
-    
-    if str(user_id) in users:
-        bot.send_message(user_id, 
-            f"""❌ **درخواست شارژ رد شد!**
-
-{get_random_emoji('error')} لطفاً با پشتیبانی تماس بگیرید:
-
-📱 @bintc
-
-💡 نکته: حتماً رسید را به درستی ارسال کنید.""",
-            parse_mode='Markdown'
-        )
-    bot.answer_callback_query(call.id, "❌ رد شد")
-    try:
-        bot.edit_message_caption("❌ رد شد", call.message.chat.id, call.message.message_id)
-    except:
-        pass
 
 # ======================== دستورات ادمین ========================
 @bot.message_handler(commands=['users'])
@@ -864,7 +771,7 @@ def list_users(m):
     text = "📊 **لیست کاربران Hegzo VPN**\n\n"
     for uid, data in users.items():
         username = data.get('username', 'بدون نام')
-        text += f"🆔 `{uid}` | @{username} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
+        text += f"🆔 `{uid}` | @{username} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)} | کمیسیون: {data.get('commission',0):,}\n"
     bot.reply_to(m, text, parse_mode='Markdown')
 
 # ======================== دستور broadcast ========================
@@ -923,7 +830,7 @@ def ban_user(m):
         banned_users.add(str(user_id))
         save_banned_users()
         try:
-            bot.send_message(user_id, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @bintc")
+            bot.send_message(user_id, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @hegzosupport")
         except:
             pass
         bot.reply_to(m, f"✅ کاربر {user_id} مسدود شد.")
@@ -975,6 +882,8 @@ if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اتصال به Supabase برای ذخیره‌سازی دائمی فعال شد!")
+    print("✅ سیستم کمیسیون ۱۰% برای دعوت‌کنندگان فعال شد!")
+    print("✅ منوی جدید شارژ (کارت به کارت) اضافه شد!")
     print("✅ عضویت در کانال برای همه عملیات‌ها الزامی شد!")
     print("✅ دکمه تایید عضویت اضافه شد!")
     print("✅ سیستم دعوت (Deep Link) با پشتیبانی از آیدی عددی و یوزرنیم فعال شد!")
