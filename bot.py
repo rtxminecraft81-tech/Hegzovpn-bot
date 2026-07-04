@@ -195,50 +195,52 @@ def buy_menu():
 
 def influencer_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("🎥 ۲۵ گیگ - ۲۹۰,۰۰۰ تومان", callback_data="b_influencer25_290000"))
-    markup.add(types.InlineKeyboardButton("🎬 ۵۰ گیگ - ۳۹۰,۰۰۰ تومان", callback_data="b_influencer50_390000"))
-    markup.add(types.InlineKeyboardButton("📹 ۱۰۰ گیگ - ۵۹۰,۰۰۰ تومان", callback_data="b_influencer100_590000"))
-    markup.add(types.InlineKeyboardButton("🎞️ ۲۰۰ گیگ - ۹۹۰,۰۰۰ تومان", callback_data="b_influencer200_990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - تک کاربره ۵۹۰,۰۰۰", callback_data="b_influencer100_590000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="b_influencer100_790000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="b_influencer100_990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه تک کاربره ۱,۴۹۰,۰۰۰", callback_data="b_influencer100_1490000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="b_influencer100_2490000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
 def normal_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("🌐 ۲۵ گیگ - ۱۹۰,۰۰۰ تومان", callback_data="b_normal25_190000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ - ۲۹۰,۰۰۰ تومان", callback_data="b_normal50_290000"))
-    markup.add(types.InlineKeyboardButton("🌎 ۱۰۰ گیگ - ۴۹۰,۰۰۰ تومان", callback_data="b_normal100_490000"))
-    markup.add(types.InlineKeyboardButton("🌏 ۲۰۰ گیگ - ۷۹۰,۰۰۰ تومان", callback_data="b_normal200_790000"))
+    markup.add(types.InlineKeyboardButton("🌐 ۲۵ گیگ - ۱۹۰,۰۰۰", callback_data="b_normal25_190000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ - ۲۹۰,۰۰۰", callback_data="b_normal50_290000"))
+    markup.add(types.InlineKeyboardButton("🌎 ۱۰۰ گیگ - ۴۹۰,۰۰۰", callback_data="b_normal100_490000"))
+    markup.add(types.InlineKeyboardButton("🌏 ۲۰۰ گیگ - ۷۹۰,۰۰۰", callback_data="b_normal200_790000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
 def gaming_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("💎 ۱۰ گیگ الماس - ۲۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond10_200000"))
-    markup.add(types.InlineKeyboardButton("💎 ۲۰ گیگ الماس - ۳۹۰,۰۰۰ تومان", callback_data="b_gaming_diamond20_390000"))
-    markup.add(types.InlineKeyboardButton("💎 ۳۰ گیگ الماس - ۵۵۰,۰۰۰ تومان", callback_data="b_gaming_diamond30_550000"))
-    markup.add(types.InlineKeyboardButton("💎 ۵۰ گیگ الماس - ۷۵۰,۰۰۰ تومان", callback_data="b_gaming_diamond50_750000"))
-    markup.add(types.InlineKeyboardButton("💎 ۱۰۰ گیگ الماس - ۱,۲۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond100_1200000"))
-    markup.add(types.InlineKeyboardButton("💎 ۱۵۰ گیگ الماس - ۱,۵۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond150_1500000"))
-    markup.add(types.InlineKeyboardButton("💎 ۲۰۰ گیگ الماس - ۱,۸۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond200_1800000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۰ گیگ الماس - ۲۰۰,۰۰۰", callback_data="b_gaming_diamond10_200000"))
+    markup.add(types.InlineKeyboardButton("💎 ۲۰ گیگ الماس - ۳۹۰,۰۰۰", callback_data="b_gaming_diamond20_390000"))
+    markup.add(types.InlineKeyboardButton("💎 ۳۰ گیگ الماس - ۵۵۰,۰۰۰", callback_data="b_gaming_diamond30_550000"))
+    markup.add(types.InlineKeyboardButton("💎 ۵۰ گیگ الماس - ۷۵۰,۰۰۰", callback_data="b_gaming_diamond50_750000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۰۰ گیگ الماس - ۱,۲۵۰,۰۰۰", callback_data="b_gaming_diamond100_1250000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۵۰ گیگ الماس - ۱,۹۸۰,۰۰۰", callback_data="b_gaming_diamond150_1980000"))
+    markup.add(types.InlineKeyboardButton("💎 ۲۰۰ گیگ الماس - ۲,۴۶۰,۰۰۰", callback_data="b_gaming_diamond200_2460000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
 def vip_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("👑 ۲۰ گیگ شاهانه - ۵۵۰,۰۰۰ تومان", callback_data="b_vip20_550000"))
-    markup.add(types.InlineKeyboardButton("👑 ۳۰ گیگ شاهانه - ۷۵۰,۰۰۰ تومان", callback_data="b_vip30_750000"))
-    markup.add(types.InlineKeyboardButton("👑 ۵۰ گیگ شاهانه - ۱,۱۰۰,۰۰۰ تومان", callback_data="b_vip50_1100000"))
-    markup.add(types.InlineKeyboardButton("👑 ۱۰۰ گیگ شاهانه - ۱,۸۰۰,۰۰۰ تومان", callback_data="b_vip100_1800000"))
+    markup.add(types.InlineKeyboardButton("👑 ۲۰ گیگ شاهانه - ۵۵۰,۰۰۰", callback_data="b_vip20_550000"))
+    markup.add(types.InlineKeyboardButton("👑 ۳۰ گیگ شاهانه - ۷۵۰,۰۰۰", callback_data="b_vip30_750000"))
+    markup.add(types.InlineKeyboardButton("👑 ۵۰ گیگ شاهانه - ۱,۱۰۰,۰۰۰", callback_data="b_vip50_1100000"))
+    markup.add(types.InlineKeyboardButton("👑 ۱۰۰ گیگ شاهانه - ۱,۸۰۰,۰۰۰", callback_data="b_vip100_1800000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
 def multi_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("🌍 ۱۰ گیگ مولتی - ۱۸۰,۰۰۰ تومان", callback_data="b_multi10_180000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۲۰ گیگ مولتی - ۳۰۰,۰۰۰ تومان", callback_data="b_multi20_300000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۳۰ گیگ مولتی - ۴۵۰,۰۰۰ تومان", callback_data="b_multi30_450000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ مولتی - ۶۵۰,۰۰۰ تومان", callback_data="b_multi50_650000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۱۰۰ گیگ مولتی - ۱,۰۰۰,۰۰۰ تومان", callback_data="b_multi100_1000000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۱۰ گیگ مولتی - ۱۸۰,۰۰۰", callback_data="b_multi10_180000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۲۰ گیگ مولتی - ۳۰۰,۰۰۰", callback_data="b_multi20_300000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۳۰ گیگ مولتی - ۴۵۰,۰۰۰", callback_data="b_multi30_450000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ مولتی - ۶۵۰,۰۰۰", callback_data="b_multi50_650000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۱۰۰ گیگ مولتی - ۱,۰۰۰,۰۰۰", callback_data="b_multi100_1000000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
