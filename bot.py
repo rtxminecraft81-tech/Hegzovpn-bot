@@ -98,6 +98,42 @@ def is_member(user_id):
     except:
         return False
 
+# ======================== دکوراتور بررسی عضویت ========================
+def membership_required(func):
+    def wrapper(message):
+        user_id = message.from_user.id
+        if is_banned(user_id):
+            bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!")
+            return
+        if not is_member(user_id):
+            markup = types.InlineKeyboardMarkup()
+            markup.add(
+                types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
+                types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
+            )
+            bot.reply_to(message, 
+                f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی **✅ تایید عضویت** کلیک کنید.",
+                reply_markup=markup,
+                parse_mode='Markdown'
+            )
+            return
+        return func(message)
+    return wrapper
+
+# ======================== دکمه تایید عضویت ========================
+@bot.callback_query_handler(func=lambda call: call.data == "check_membership")
+def check_membership_callback(call):
+    user_id = call.from_user.id
+    if is_member(user_id):
+        bot.edit_message_text(
+            "✅ عضویت شما تأیید شد! حالا می‌توانید از ربات استفاده کنید.",
+            call.message.chat.id,
+            call.message.message_id
+        )
+        bot.send_message(user_id, "🔥 منوی اصلی:", reply_markup=main_keyboard())
+    else:
+        bot.answer_callback_query(call.id, "❌ هنوز عضو کانال نشده‌اید! لطفاً ابتدا عضو شوید.", show_alert=True)
+
 # ======================== استیکرها و ایموجی‌ها ========================
 STICKERS = {
     'welcome': 'CAACAgQAAxkBAAE...',
@@ -200,12 +236,9 @@ def admin_charge_buttons(user_id, amount):
 
 # ======================== دستورات و منوها ========================
 @bot.message_handler(commands=['start'])
+@membership_required
 def start(message):
     user_id = message.from_user.id
-    if is_banned(user_id):
-        bot.reply_to(message, "⛔ شما توسط ادمین مسدود شده اید!\n🆔 @bintc")
-        return
-    
     loading_msg = loading_animation(message, "🔥 در حال آماده‌سازی...", 1.5)
     delete_with_animation(loading_msg, 0.3)
     
@@ -225,12 +258,6 @@ def start(message):
         except:
             pass
     
-    if not is_member(user_id):
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"))
-        bot.reply_to(message, f"❌ سلام {name} عزیز!\n\nلطفا در کانال عضو شوید.", reply_markup=markup)
-        return
-    
     send_sticker(user_id, 'welcome')
     bot.reply_to(message, 
         f"""🔥 **به 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵 خوش اومدی** {name}! 🎉
@@ -246,6 +273,7 @@ def start(message):
     )
 
 @bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
+@membership_required
 def back_home(m):
     loading_msg = loading_animation(m, "🔄 در حال بازگشت به منوی اصلی...", 1)
     delete_with_animation(loading_msg, 0.3)
@@ -255,6 +283,7 @@ def back_home(m):
     )
 
 @bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
+@membership_required
 def show_buy(m):
     loading_msg = loading_animation(m, "📦 در حال بارگذاری سرویس‌ها...", 1)
     delete_with_animation(loading_msg, 0.3)
@@ -265,6 +294,7 @@ def show_buy(m):
     )
 
 @bot.message_handler(func=lambda m: m.text == "👤 حساب کاربری")
+@membership_required
 def profile(m):
     user_id = m.from_user.id
     data = users.get(str(user_id), {})
@@ -273,10 +303,12 @@ def profile(m):
     loading_msg = loading_animation(m, "📊 در حال دریافت اطلاعات...", 1)
     delete_with_animation(loading_msg, 0.3)
     
+    username = m.from_user.username or "بدون نام"
     text = f"""👤 **حساب کاربری 𝑯𝑬𝑮𝒁𝑶 𝑽𝑷𝑵**
 
 ━━━━━━━━━━━━━━━━━━━━━
 🆔 شناسه: `{user_id}`
+👤 نام کاربری: @{username}
 👤 نام: {m.from_user.first_name}
 📊 کانفیگ فعال: {active_count}
 👥 زیرمجموعه: {data.get('referrals', 0)}
@@ -289,6 +321,7 @@ def profile(m):
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "👥 دعوت از دوستان")
+@membership_required
 def invite(m):
     user_id = m.from_user.id
     link = f"https://t.me/{bot.get_me().username}?start={user_id}"
@@ -309,6 +342,7 @@ def invite(m):
     bot.reply_to(m, text, parse_mode='Markdown', reply_markup=markup)
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
+@membership_required
 def support(m):
     send_sticker(m.from_user.id, 'fire')
     bot.reply_to(m, 
@@ -323,6 +357,7 @@ def support(m):
     )
 
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
+@membership_required
 def charge(m):
     user_id = m.from_user.id
     
@@ -371,6 +406,7 @@ def get_amount(m):
         )
 
 @bot.message_handler(content_types=['photo'])
+@membership_required
 def receipt(m):
     user_id = m.from_user.id
     username = m.from_user.username or "بدون نام"
@@ -392,6 +428,7 @@ def receipt(m):
         bot.reply_to(m, f"❌ **ابتدا از منوی اصلی روی 💳 شارژ کیف پول کلیک کن و مبلغ را وارد کن.**\n\n{get_random_emoji('error')}", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "📁 کانفیگ‌های من")
+@membership_required
 def my_configs_list(m):
     user_id = m.from_user.id
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
@@ -423,6 +460,9 @@ def my_configs_list(m):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("showcfg_"))
 def show_config_detail(call):
     user_id = call.from_user.id
+    if not is_member(user_id):
+        bot.answer_callback_query(call.id, "❌ ابتدا در کانال عضو شوید!", show_alert=True)
+        return
     idx = int(call.data.split("_")[1])
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
     
@@ -464,6 +504,9 @@ def show_config_detail(call):
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_configs")
 def back_to_configs(call):
     user_id = call.from_user.id
+    if not is_member(user_id):
+        bot.answer_callback_query(call.id, "❌ ابتدا در کانال عضو شوید!", show_alert=True)
+        return
     cfg_list = users.get(str(user_id), {}).get('active_configs', [])
     
     if not cfg_list:
@@ -525,6 +568,9 @@ def buy_cmd(call):
     user_id = call.from_user.id
     if is_banned(user_id):
         bot.answer_callback_query(call.id, "❌ شما مسدود شده اید!", show_alert=True)
+        return
+    if not is_member(user_id):
+        bot.answer_callback_query(call.id, "❌ ابتدا در کانال عضو شوید!", show_alert=True)
         return
     
     parts = call.data.split("_")
@@ -709,31 +755,55 @@ def list_users(m):
         return
     text = "📊 **لیست کاربران Hegzo VPN**\n\n"
     for uid, data in users.items():
-        text += f"🆔 `{uid}` | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
+        username = data.get('username', 'بدون نام')
+        text += f"🆔 `{uid}` | @{username} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
     bot.reply_to(m, text, parse_mode='Markdown')
 
+# ======================== دستور broadcast با قابلیت ارسال گیف، ایموجی، عکس، ویدیو و استیکر ========================
 @bot.message_handler(commands=['broadcast'])
 def broadcast_cmd(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
-    bot.reply_to(m, "📢 لطفا پیام خود را بفرستید:")
+    bot.reply_to(m, "📢 **لطفاً پیام، عکس، ویدیو، گیف، استیکر یا هر محتوایی که می‌خواهید برای همه ارسال شود را بفرستید.**\n\n📌 اگر پیام متنی است، آن را تایپ کنید.\n📌 اگر فایل است، آن را آپلود کنید.\n\n⏳ پس از ارسال، پیام برای همه کاربران ارسال خواهد شد.")
     bot.register_next_step_handler(m, do_broadcast)
 
 def do_broadcast(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
-    msg = m.text
+    
     success = 0
     fail = 0
-    for uid in users.keys():
+    user_ids = list(users.keys())
+    
+    for uid in user_ids:
         try:
-            bot.send_message(int(uid), f"📢 **پیام از ادمین Hegzo VPN**\n\n{msg}", parse_mode='Markdown')
+            if m.text:
+                bot.send_message(int(uid), f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.text}", parse_mode='Markdown')
+            elif m.photo:
+                bot.send_photo(int(uid), m.photo[-1].file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            elif m.video:
+                bot.send_video(int(uid), m.video.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            elif m.animation:  # گیف
+                bot.send_animation(int(uid), m.animation.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            elif m.sticker:
+                bot.send_sticker(int(uid), m.sticker.file_id)
+            elif m.document:
+                bot.send_document(int(uid), m.document.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            elif m.voice:
+                bot.send_voice(int(uid), m.voice.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            elif m.audio:
+                bot.send_audio(int(uid), m.audio.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
+            else:
+                bot.send_message(int(uid), f"📢 **پیام از ادمین Hegzo VPN**\n\n{get_random_emoji('fire')} پیام جدید از ادمین!", parse_mode='Markdown')
             success += 1
             time.sleep(0.05)
-        except:
+        except Exception as e:
             fail += 1
+            print(f"❌ ارسال به {uid} ناموفق: {e}")
+    
     bot.reply_to(m, f"✅ **ارسال پیام پایان یافت!**\n\n✅ موفق: {success}\n❌ ناموفق: {fail}")
 
+# ======================== سایر دستورات ادمین ========================
 @bot.message_handler(commands=['ban'])
 def ban_user(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -781,6 +851,7 @@ def list_banned(m):
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: True)
+@membership_required
 def unknown(m):
     user_id = m.from_user.id
     if is_banned(user_id):
@@ -797,10 +868,10 @@ if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روی پورت {PORT} روشن شد!")
     print("✅ اتصال به Supabase برای ذخیره‌سازی دائمی فعال شد!")
-    print("✅ سرویس اقتصادی: 25-50-100 گیگ با سرعت 4 مگابیت")
-    print("✅ سرویس گیمینگ: 20-30-50-100 گیگ")
-    print("✅ سرویس خانواده: 1 تا 4 کاربر + نامحدود 10 روزه")
-    print("🎬 انیمیشن‌ها و افکت‌های ویژه فعال شدند!")
+    print("✅ عضویت در کانال برای همه عملیات‌ها الزامی شد!")
+    print("✅ دکمه تایید عضویت اضافه شد!")
+    print("✅ نام کاربری (با @) در پیام‌های ادمین نمایش داده می‌شود!")
+    print("✅ دستور broadcast با قابلیت ارسال عکس، ویدیو، گیف، استیکر، فایل و متن فعال شد!")
 
     bot.delete_webhook()
     time.sleep(2)
