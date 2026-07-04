@@ -182,38 +182,63 @@ def main_keyboard():
     markup.add("🏠 منوی اصلی")
     return markup
 
+# ======================== منوهای جدید خرید ========================
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("💰 اقتصادی", callback_data="lev_eco"))
-    markup.add(types.InlineKeyboardButton("🎮 گیمینگ", callback_data="lev_gaming"))
-    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 خانواده", callback_data="lev_family"))
+    markup.add(types.InlineKeyboardButton("⭐ اینفلوئنسر و استریمر", callback_data="lev_influencer"))
+    markup.add(types.InlineKeyboardButton("🌐 گشت‌وگذار عادی", callback_data="lev_normal"))
+    markup.add(types.InlineKeyboardButton("🎮 گیمینگ و حرفه‌ای", callback_data="lev_gaming"))
+    markup.add(types.InlineKeyboardButton("👑 VIP و شاهانه", callback_data="lev_vip"))
+    markup.add(types.InlineKeyboardButton("🌍 مولتی‌لوکیشن", callback_data="lev_multi"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main"))
     return markup
 
-def eco_menu():
+def influencer_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("25 گیگ - 180,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco25_180000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 250,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco50_250000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 450,000 تومان (سرعت 4 مگابیت)", callback_data="b_eco100_450000"))
+    markup.add(types.InlineKeyboardButton("🎥 ۲۵ گیگ - ۲۹۰,۰۰۰ تومان", callback_data="b_influencer25_290000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۵۰ گیگ - ۳۹۰,۰۰۰ تومان", callback_data="b_influencer50_390000"))
+    markup.add(types.InlineKeyboardButton("📹 ۱۰۰ گیگ - ۵۹۰,۰۰۰ تومان", callback_data="b_influencer100_590000"))
+    markup.add(types.InlineKeyboardButton("🎞️ ۲۰۰ گیگ - ۹۹۰,۰۰۰ تومان", callback_data="b_influencer200_990000"))
+    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
+    return markup
+
+def normal_menu():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton("🌐 ۲۵ گیگ - ۱۹۰,۰۰۰ تومان", callback_data="b_normal25_190000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ - ۲۹۰,۰۰۰ تومان", callback_data="b_normal50_290000"))
+    markup.add(types.InlineKeyboardButton("🌎 ۱۰۰ گیگ - ۴۹۰,۰۰۰ تومان", callback_data="b_normal100_490000"))
+    markup.add(types.InlineKeyboardButton("🌏 ۲۰۰ گیگ - ۷۹۰,۰۰۰ تومان", callback_data="b_normal200_790000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
 def gaming_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("20 گیگ - 200,000 تومان", callback_data="b_gaming20_200000"))
-    markup.add(types.InlineKeyboardButton("30 گیگ - 250,000 تومان", callback_data="b_gaming30_250000"))
-    markup.add(types.InlineKeyboardButton("50 گیگ - 400,000 تومان", callback_data="b_gaming50_400000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ - 700,000 تومان", callback_data="b_gaming100_700000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۰ گیگ الماس - ۲۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond10_200000"))
+    markup.add(types.InlineKeyboardButton("💎 ۲۰ گیگ الماس - ۳۹۰,۰۰۰ تومان", callback_data="b_gaming_diamond20_390000"))
+    markup.add(types.InlineKeyboardButton("💎 ۳۰ گیگ الماس - ۵۵۰,۰۰۰ تومان", callback_data="b_gaming_diamond30_550000"))
+    markup.add(types.InlineKeyboardButton("💎 ۵۰ گیگ الماس - ۷۵۰,۰۰۰ تومان", callback_data="b_gaming_diamond50_750000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۰۰ گیگ الماس - ۱,۲۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond100_1200000"))
+    markup.add(types.InlineKeyboardButton("💎 ۱۵۰ گیگ الماس - ۱,۵۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond150_1500000"))
+    markup.add(types.InlineKeyboardButton("💎 ۲۰۰ گیگ الماس - ۱,۸۰۰,۰۰۰ تومان", callback_data="b_gaming_diamond200_1800000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-def family_menu():
+def vip_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("100 گیگ تک کاربره - 1 ماهه 199,000 تومان", callback_data="b_family1_199000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 2 کاربر - 1 ماهه 249,000 تومان", callback_data="b_family2_249000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 3 کاربر - 1 ماهه 299,000 تومان", callback_data="b_family3_299000"))
-    markup.add(types.InlineKeyboardButton("100 گیگ 4 کاربر - 1 ماهه 349,000 تومان", callback_data="b_family4_349000"))
-    markup.add(types.InlineKeyboardButton("10 روزه تک کاربر نامحدود - 99,000 تومان", callback_data="b_familyunlimited_99000"))
+    markup.add(types.InlineKeyboardButton("👑 ۲۰ گیگ شاهانه - ۵۵۰,۰۰۰ تومان", callback_data="b_vip20_550000"))
+    markup.add(types.InlineKeyboardButton("👑 ۳۰ گیگ شاهانه - ۷۵۰,۰۰۰ تومان", callback_data="b_vip30_750000"))
+    markup.add(types.InlineKeyboardButton("👑 ۵۰ گیگ شاهانه - ۱,۱۰۰,۰۰۰ تومان", callback_data="b_vip50_1100000"))
+    markup.add(types.InlineKeyboardButton("👑 ۱۰۰ گیگ شاهانه - ۱,۸۰۰,۰۰۰ تومان", callback_data="b_vip100_1800000"))
+    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
+    return markup
+
+def multi_menu():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton("🌍 ۱۰ گیگ مولتی - ۱۸۰,۰۰۰ تومان", callback_data="b_multi10_180000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۲۰ گیگ مولتی - ۳۰۰,۰۰۰ تومان", callback_data="b_multi20_300000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۳۰ گیگ مولتی - ۴۵۰,۰۰۰ تومان", callback_data="b_multi30_450000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ مولتی - ۶۵۰,۰۰۰ تومان", callback_data="b_multi50_650000"))
+    markup.add(types.InlineKeyboardButton("🌍 ۱۰۰ گیگ مولتی - ۱,۰۰۰,۰۰۰ تومان", callback_data="b_multi100_1000000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -456,7 +481,43 @@ def my_configs_list(m):
         parse_mode='Markdown'
     )
 
-# ======================== Callback ها ========================
+# ======================== Callback های جدید ========================
+@bot.callback_query_handler(func=lambda call: call.data == "lev_influencer")
+def lev_influencer(call):
+    try:
+        bot.edit_message_text("⭐ **اینفلوئنسر و استریمر**\n\nسرویس‌های اختصاصی برای تولیدکنندگان محتوا:", call.message.chat.id, call.message.message_id, reply_markup=influencer_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "⭐ **اینفلوئنسر و استریمر**\n\nسرویس‌های اختصاصی برای تولیدکنندگان محتوا:", reply_markup=influencer_menu(), parse_mode='Markdown')
+
+@bot.callback_query_handler(func=lambda call: call.data == "lev_normal")
+def lev_normal(call):
+    try:
+        bot.edit_message_text("🌐 **گشت‌وگذار عادی**\n\nمناسب برای استفاده‌ی روزمره:", call.message.chat.id, call.message.message_id, reply_markup=normal_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "🌐 **گشت‌وگذار عادی**\n\nمناسب برای استفاده‌ی روزمره:", reply_markup=normal_menu(), parse_mode='Markdown')
+
+@bot.callback_query_handler(func=lambda call: call.data == "lev_gaming")
+def lev_gaming(call):
+    try:
+        bot.edit_message_text("🎮 **گیمینگ و حرفه‌ای**\n\nسرویس‌های ویژه برای گیمرها و کاربران حرفه‌ای:", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "🎮 **گیمینگ و حرفه‌ای**\n\nسرویس‌های ویژه برای گیمرها و کاربران حرفه‌ای:", reply_markup=gaming_menu(), parse_mode='Markdown')
+
+@bot.callback_query_handler(func=lambda call: call.data == "lev_vip")
+def lev_vip(call):
+    try:
+        bot.edit_message_text("👑 **VIP و شاهانه**\n\nسرویس‌های لوکس برای کاربران ویژه:", call.message.chat.id, call.message.message_id, reply_markup=vip_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "👑 **VIP و شاهانه**\n\nسرویس‌های لوکس برای کاربران ویژه:", reply_markup=vip_menu(), parse_mode='Markdown')
+
+@bot.callback_query_handler(func=lambda call: call.data == "lev_multi")
+def lev_multi(call):
+    try:
+        bot.edit_message_text("🌍 **مولتی‌لوکیشن**\n\nسرویس‌های با چندین موقعیت مکانی:", call.message.chat.id, call.message.message_id, reply_markup=multi_menu(), parse_mode='Markdown')
+    except:
+        bot.send_message(call.message.chat.id, "🌍 **مولتی‌لوکیشن**\n\nسرویس‌های با چندین موقعیت مکانی:", reply_markup=multi_menu(), parse_mode='Markdown')
+
+# ======================== بقیه‌ی Callback ها ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("showcfg_"))
 def show_config_detail(call):
     user_id = call.from_user.id
@@ -527,27 +588,6 @@ def back_to_configs(call):
         bot.edit_message_text("📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode='Markdown')
     except:
         bot.send_message(call.message.chat.id, "📦 **لیست کانفیگ‌های فعال شما**\n\nلطفا یکی از گزینه‌های زیر را انتخاب کنید:", reply_markup=markup, parse_mode='Markdown')
-
-@bot.callback_query_handler(func=lambda call: call.data == "lev_eco")
-def lev_eco(call):
-    try:
-        bot.edit_message_text("💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=eco_menu(), parse_mode='Markdown')
-    except:
-        bot.send_message(call.message.chat.id, "💰 **سرور اقتصادی Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=eco_menu(), parse_mode='Markdown')
-
-@bot.callback_query_handler(func=lambda call: call.data == "lev_gaming")
-def lev_gaming(call):
-    try:
-        bot.edit_message_text("🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=gaming_menu(), parse_mode='Markdown')
-    except:
-        bot.send_message(call.message.chat.id, "🎮 **سرور گیمینگ Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=gaming_menu(), parse_mode='Markdown')
-
-@bot.callback_query_handler(func=lambda call: call.data == "lev_family")
-def lev_family(call):
-    try:
-        bot.edit_message_text("👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=family_menu(), parse_mode='Markdown')
-    except:
-        bot.send_message(call.message.chat.id, "👨‍👩‍👧‍👦 **بسته خانواده Hegzo VPN**\n\nلطفا یکی از بسته‌های زیر را انتخاب کنید:", reply_markup=family_menu(), parse_mode='Markdown')
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
@@ -759,7 +799,7 @@ def list_users(m):
         text += f"🆔 `{uid}` | @{username} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
     bot.reply_to(m, text, parse_mode='Markdown')
 
-# ======================== دستور broadcast با قابلیت ارسال گیف، ایموجی، عکس، ویدیو و استیکر ========================
+# ======================== دستور broadcast ========================
 @bot.message_handler(commands=['broadcast'])
 def broadcast_cmd(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -783,7 +823,7 @@ def do_broadcast(m):
                 bot.send_photo(int(uid), m.photo[-1].file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
             elif m.video:
                 bot.send_video(int(uid), m.video.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
-            elif m.animation:  # گیف
+            elif m.animation:
                 bot.send_animation(int(uid), m.animation.file_id, caption=f"📢 **پیام از ادمین Hegzo VPN**\n\n{m.caption or ''}", parse_mode='Markdown')
             elif m.sticker:
                 bot.send_sticker(int(uid), m.sticker.file_id)
@@ -803,7 +843,6 @@ def do_broadcast(m):
     
     bot.reply_to(m, f"✅ **ارسال پیام پایان یافت!**\n\n✅ موفق: {success}\n❌ ناموفق: {fail}")
 
-# ======================== سایر دستورات ادمین ========================
 @bot.message_handler(commands=['ban'])
 def ban_user(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -872,6 +911,7 @@ if __name__ == '__main__':
     print("✅ دکمه تایید عضویت اضافه شد!")
     print("✅ نام کاربری (با @) در پیام‌های ادمین نمایش داده می‌شود!")
     print("✅ دستور broadcast با قابلیت ارسال عکس، ویدیو، گیف، استیکر، فایل و متن فعال شد!")
+    print("✅ سرویس‌های جدید (اینفلوئنسر، گشت‌وگذار، گیمینگ، VIP، مولتی‌لوکیشن) اضافه شدند!")
 
     bot.delete_webhook()
     time.sleep(2)
