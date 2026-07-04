@@ -102,6 +102,23 @@ def is_member(user_id):
     except:
         return False
 
+# ======================== تابع پردازش مبلغ ========================
+def parse_amount(text):
+    """تبدیل متن مبلغ به عدد صحیح (پشتیبانی از کاما، فاصله و اعداد فارسی)"""
+    # حذف کاما و فاصله
+    text = text.replace(',', '').replace(' ', '').replace('،', '')
+    # تبدیل اعداد فارسی به انگلیسی
+    persian_to_english = {
+        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+        '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+    }
+    for p, e in persian_to_english.items():
+        text = text.replace(p, e)
+    try:
+        return int(text)
+    except:
+        return None
+
 # ======================== دکوراتور بررسی عضویت ========================
 def membership_required(func):
     def wrapper(message):
@@ -476,22 +493,42 @@ def charge_card(call):
     
     bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode='Markdown')
     
-    # درخواست وارد کردن مبلغ
     msg = bot.send_message(user_id, f"💰 **لطفاً مبلغ واریز شده را به تومان وارد کنید:**")
     bot.register_next_step_handler(msg, get_charge_amount)
 
 def get_charge_amount(m):
     user_id = m.from_user.id
-    try:
-        amount = int(m.text)
-        if amount < MIN_CHARGE:
-            bot.reply_to(m, f"❌ **حداقل شارژ {MIN_CHARGE:,} تومان است!**\n\nلطفاً مبلغ بیشتری واریز کنید.")
-            return
-        users[str(user_id)]['pending_charge'] = amount
-        save_users(users)
-        bot.reply_to(m, f"✅ **مبلغ {amount:,} تومان ثبت شد!**\n\n📸 لطفاً عکس رسید واریز را بفرستید.")
-    except:
-        bot.reply_to(m, f"❌ **لطفاً یک عدد معتبر وارد کنید!**\n\nمثال: 200000")
+    amount = parse_amount(m.text)
+    
+    if amount is None:
+        bot.reply_to(m, 
+            f"❌ **لطفاً یک عدد معتبر وارد کنید!**\n\n"
+            f"📌 مثال‌های قابل قبول:\n"
+            f"• `200000`\n"
+            f"• `۲۰۰۰۰۰`\n"
+            f"• `200,000`\n"
+            f"• `۲۰۰,۰۰۰`\n\n"
+            f"💰 حداقل شارژ: {MIN_CHARGE:,} تومان",
+            parse_mode='Markdown'
+        )
+        return
+    
+    if amount < MIN_CHARGE:
+        bot.reply_to(m, 
+            f"❌ **حداقل شارژ {MIN_CHARGE:,} تومان است!**\n\n"
+            f"شما وارد کردید: {amount:,} تومان\n"
+            f"لطفاً مبلغ بیشتری واریز کنید.",
+            parse_mode='Markdown'
+        )
+        return
+    
+    users[str(user_id)]['pending_charge'] = amount
+    save_users(users)
+    bot.reply_to(m, 
+        f"✅ **مبلغ {amount:,} تومان ثبت شد!**\n\n"
+        f"📸 لطفاً عکس رسید واریز را بفرستید.",
+        parse_mode='Markdown'
+    )
 
 @bot.message_handler(content_types=['photo'])
 @membership_required
@@ -990,7 +1027,8 @@ if __name__ == '__main__':
     print("✅ اتصال به Supabase برای ذخیره‌سازی دائمی فعال شد!")
     print("✅ سیستم کمیسیون ۱۰% برای دعوت‌کنندگان فعال شد!")
     print("✅ منوی جدید شارژ (کارت به کارت) با حداقل ۲۰۰,۰۰۰ تومان فعال شد!")
-    print("✅ سیستم وارد کردن مبلغ و ارسال رسید برای ادمین فعال شد!")
+    print("✅ سیستم وارد کردن مبلغ با پشتیبانی از اعداد فارسی، کاما و فاصله فعال شد!")
+    print("✅ سیستم ارسال رسید برای ادمین فعال شد!")
     print("✅ عضویت در کانال برای همه عملیات‌ها الزامی شد!")
     print("✅ دکمه تایید عضویت اضافه شد!")
     print("✅ سیستم دعوت (Deep Link) با پشتیبانی از آیدی عددی و یوزرنیم فعال شد!")
