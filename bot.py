@@ -9,6 +9,7 @@ import threading
 import random
 import string
 import re
+import hashlib
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -36,7 +37,7 @@ SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ======================== توابع دیتابیس (اصلاح شده) ========================
+# ======================== توابع دیتابیس ========================
 def load_users():
     try:
         response = supabase.table("users").select("*").execute()
@@ -50,7 +51,7 @@ def load_users():
                 'invited_by': row.get('invited_by'),
                 'referrals': row.get('referrals', 0),
                 'joined_at': row.get('joined_at', ''),
-                'referral_code': row.get('referral_code', str(row['user_id']))
+                'referral_code': row.get('referral_code', '')
             }
         return users
     except Exception as e:
@@ -69,13 +70,19 @@ def save_users(users):
                 "invited_by": data.get('invited_by'),
                 "referrals": data.get('referrals', 0),
                 "joined_at": data.get('joined_at', ''),
-                "referral_code": data.get('referral_code', str(user_id))
+                "referral_code": data.get('referral_code', '')
             }).execute()
     except Exception as e:
         print(f"❌ خطا در سیو کاربران: {e}")
 
+def generate_referral_code(user_id):
+    """تولید کد دعوت ۶ رقمی منحصربه‌فرد"""
+    hash_object = hashlib.md5(str(user_id).encode())
+    return hash_object.hexdigest()[:6].upper()
+
 def init_user(user_id, username=""):
     if str(user_id) not in users:
+        referral_code = generate_referral_code(user_id)
         users[str(user_id)] = {
             'username': username,
             'credit': 0,
@@ -84,12 +91,10 @@ def init_user(user_id, username=""):
             'invited_by': None,
             'referrals': 0,
             'joined_at': str(datetime.now()),
-            'referral_code': str(user_id)
+            'referral_code': referral_code
         }
         save_users(users)
-
-def generate_referral_code(user_id):
-    return str(user_id)
+        print(f"✅ کاربر جدید: {user_id} - کد: {referral_code}")
 
 bot = telebot.TeleBot(TOKEN)
 users = load_users()
@@ -267,21 +272,21 @@ def start(message):
             if users.get(str(user_id), {}).get('invited_by') is None:
                 inviter_id = None
                 
-                # بررسی با آیدی
-                try:
-                    ref_int = int(ref_param)
-                    if str(ref_int) in users and str(ref_int) != str(user_id):
-                        inviter_id = str(ref_int)
-                except:
-                    pass
+                # ۱. بررسی با کد دعوت (۶ رقمی)
+                for uid, data in users.items():
+                    if data.get('referral_code', '').upper() == ref_param.upper():
+                        if uid != str(user_id):
+                            inviter_id = uid
+                            break
                 
-                # بررسی با کد دعوت
+                # ۲. بررسی با آیدی
                 if inviter_id is None:
-                    for uid, data in users.items():
-                        if data.get('referral_code', '').lower() == ref_param.lower():
-                            if uid != str(user_id):
-                                inviter_id = uid
-                                break
+                    try:
+                        ref_int = int(ref_param)
+                        if str(ref_int) in users and str(ref_int) != str(user_id):
+                            inviter_id = str(ref_int)
+                    except:
+                        pass
                 
                 if inviter_id:
                     users[str(user_id)]['invited_by'] = inviter_id
@@ -294,15 +299,23 @@ def start(message):
                             int(inviter_id),
                             f"🎉 یک کاربر جدید با کد شما عضو شد!\n\n"
                             f"👤 {message.from_user.first_name}\n"
-                            f"💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!"
+                            f"🆔 {user_id}\n"
+                            f"💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!\n"
+                            f"👥 تعداد دعوت‌ها: {users[inviter_id]['referrals']}"
                         )
                     except:
                         pass
                     
                     bot.reply_to(
                         message,
-                        f"✅ شما با کد دعوت عضو شدید!\n"
+                        f"✅ شما با کد دعوت `{ref_param}` عضو شدید!\n"
                         f"🎁 دعوت‌کننده شما {REFERRAL_AMOUNT:,} تومان پاداش گرفت."
+                    )
+                else:
+                    bot.reply_to(
+                        message,
+                        f"⚠️ کد دعوت `{ref_param}` معتبر نیست!\n"
+                        f"برای عضویت بدون دعوت، از منو استفاده کن."
                     )
         except Exception as e:
             print(f"❌ خطا در رفرال: {e}")
@@ -665,15 +678,30 @@ def profile(m):
 def invite(m):
     user_id = str(m.from_user.id)
     data = users.get(user_id, {})
-    referral_code = data.get('referral_code', user_id)
+    
+    # اگر کد دعوت نداره، بساز
+    if not data.get('referral_code'):
+        data['referral_code'] = generate_referral_code(user_id)
+        users[user_id] = data
+        save_users(users)
+    
+    referral_code = data.get('referral_code')
     bot_username = bot.get_me().username
     
+    # لینک دعوت با کد ۶ رقمی
     invite_link = f"https://t.me/{bot_username}?start={referral_code}"
+    
+    # لینک دعوت با آیدی (پشتیبان)
+    invite_link_id = f"https://t.me/{bot_username}?start={user_id}"
     
     text = f"""🔥 **سیستم دعوت از دوستان**
 
 👤 کد دعوت شما: `{referral_code}`
-🔗 لینک دعوت: `{invite_link}`
+🔗 لینک دعوت اختصاصی:
+`{invite_link}`
+
+📌 **یا با لینک زیر (آیدی):**
+`{invite_link_id}`
 
 📌 **طرز استفاده:**
 ۱. لینک بالا رو برای دوستانت بفرست
@@ -688,7 +716,8 @@ def invite(m):
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
-@membership_requireddef support(m):
+@membership_required
+def support(m):
     bot.reply_to(m, "🆔 @hegzosupport\n۲۴ ساعته")
 
 @bot.message_handler(commands=['users'])
@@ -700,7 +729,7 @@ def list_users(m):
         return
     text = "📊 لیست کاربران:\n"
     for uid, data in users.items():
-        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
+        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)} | کد: {data.get('referral_code', '')}\n"
     bot.reply_to(m, text)
 
 @bot.message_handler(commands=['broadcast'])
