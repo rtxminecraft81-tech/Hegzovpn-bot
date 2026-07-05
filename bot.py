@@ -28,7 +28,7 @@ CARD_NAME = ' خزایی'
 MIN_CHARGE = 200000
 REFERRAL_AMOUNT = 5000
 
-# ======================== وضعیت شارژ (خاموش/روشن) ========================
+# ======================== وضعیت شارژ ========================
 wallet_enabled = True
 
 # ======================== اتصال به Supabase ========================
@@ -36,36 +36,43 @@ SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ======================== توابع ذخیره‌سازی ========================
+# ======================== توابع دیتابیس (اصلاح شده) ========================
 def load_users():
-    response = supabase.table("users").select("*").execute()
-    users = {}
-    for row in response.data:
-        users[row['user_id']] = {
-            'username': row.get('username', ''),
-            'credit': row.get('credit', 0),
-            'active_configs': row.get('active_configs', []),
-            'pending_charge': row.get('pending_charge', 0),
-            'invited_by': row.get('invited_by'),
-            'referrals': row.get('referrals', 0),
-            'joined_at': row.get('joined_at', ''),
-            'referral_code': row.get('referral_code', '')
-        }
-    return users
+    try:
+        response = supabase.table("users").select("*").execute()
+        users = {}
+        for row in response.data:
+            users[row['user_id']] = {
+                'username': row.get('username', ''),
+                'credit': row.get('credit', 0),
+                'active_configs': row.get('active_configs', []),
+                'pending_charge': row.get('pending_charge', 0),
+                'invited_by': row.get('invited_by'),
+                'referrals': row.get('referrals', 0),
+                'joined_at': row.get('joined_at', ''),
+                'referral_code': row.get('referral_code', str(row['user_id']))
+            }
+        return users
+    except Exception as e:
+        print(f"❌ خطا در لود کاربران: {e}")
+        return {}
 
 def save_users(users):
-    for user_id, data in users.items():
-        supabase.table("users").upsert({
-            "user_id": user_id,
-            "username": data.get('username', ''),
-            "credit": data.get('credit', 0),
-            "active_configs": data.get('active_configs', []),
-            "pending_charge": data.get('pending_charge', 0),
-            "invited_by": data.get('invited_by'),
-            "referrals": data.get('referrals', 0),
-            "joined_at": data.get('joined_at', ''),
-            "referral_code": data.get('referral_code', '')
-        }).execute()
+    try:
+        for user_id, data in users.items():
+            supabase.table("users").upsert({
+                "user_id": user_id,
+                "username": data.get('username', ''),
+                "credit": data.get('credit', 0),
+                "active_configs": data.get('active_configs', []),
+                "pending_charge": data.get('pending_charge', 0),
+                "invited_by": data.get('invited_by'),
+                "referrals": data.get('referrals', 0),
+                "joined_at": data.get('joined_at', ''),
+                "referral_code": data.get('referral_code', str(user_id))
+            }).execute()
+    except Exception as e:
+        print(f"❌ خطا در سیو کاربران: {e}")
 
 def init_user(user_id, username=""):
     if str(user_id) not in users:
@@ -77,12 +84,12 @@ def init_user(user_id, username=""):
             'invited_by': None,
             'referrals': 0,
             'joined_at': str(datetime.now()),
-            'referral_code': generate_referral_code(user_id)
+            'referral_code': str(user_id)
         }
         save_users(users)
 
 def generate_referral_code(user_id):
-    return f"REF{user_id}{''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}"
+    return str(user_id)
 
 bot = telebot.TeleBot(TOKEN)
 users = load_users()
@@ -211,7 +218,7 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== دستورات خاموش/روشن کردن شارژ ========================
+# ======================== دستورات ادمین ========================
 @bot.message_handler(commands=['walletoff'])
 def wallet_off(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -235,6 +242,7 @@ def start(message):
     if is_banned(user_id):
         bot.reply_to(message, "⛔ شما مسدود شده اید!")
         return
+    
     if not is_member(user_id):
         markup = types.InlineKeyboardMarkup()
         markup.add(
@@ -251,38 +259,60 @@ def start(message):
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
+    # ======================== سیستم رفرال ========================
     if len(message.text.split()) > 1:
         try:
             ref_param = message.text.split()[1]
-            try:
-                ref = int(ref_param)
-            except:
-                ref = ref_param
-            if str(ref) != str(user_id):
-                if not users.get(str(user_id), {}).get('invited_by'):
-                    inviter = None
-                    try:
-                        ref_int = int(ref)
-                        if str(ref_int) in users:
-                            inviter = str(ref_int)
-                    except:
-                        for uid, data in users.items():
-                            if data.get('referral_code', '').lower() == str(ref).lower():
-                                inviter = uid
+            
+            if users.get(str(user_id), {}).get('invited_by') is None:
+                inviter_id = None
+                
+                # بررسی با آیدی
+                try:
+                    ref_int = int(ref_param)
+                    if str(ref_int) in users and str(ref_int) != str(user_id):
+                        inviter_id = str(ref_int)
+                except:
+                    pass
+                
+                # بررسی با کد دعوت
+                if inviter_id is None:
+                    for uid, data in users.items():
+                        if data.get('referral_code', '').lower() == ref_param.lower():
+                            if uid != str(user_id):
+                                inviter_id = uid
                                 break
-                    if inviter and inviter != str(user_id):
-                        users[str(user_id)]['invited_by'] = inviter
-                        users[inviter]['referrals'] += 1
-                        users[inviter]['credit'] += REFERRAL_AMOUNT
-                        save_users(users)
-                        bot.send_message(int(inviter), 
-                            f"🎉 یک کاربر جدید با کد شما عضو شد!\n\n👤 {message.from_user.first_name}\n💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!"
+                
+                if inviter_id:
+                    users[str(user_id)]['invited_by'] = inviter_id
+                    users[inviter_id]['referrals'] = users[inviter_id].get('referrals', 0) + 1
+                    users[inviter_id]['credit'] = users[inviter_id].get('credit', 0) + REFERRAL_AMOUNT
+                    save_users(users)
+                    
+                    try:
+                        bot.send_message(
+                            int(inviter_id),
+                            f"🎉 یک کاربر جدید با کد شما عضو شد!\n\n"
+                            f"👤 {message.from_user.first_name}\n"
+                            f"💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!"
                         )
-        except:
-            pass
+                    except:
+                        pass
+                    
+                    bot.reply_to(
+                        message,
+                        f"✅ شما با کد دعوت عضو شدید!\n"
+                        f"🎁 دعوت‌کننده شما {REFERRAL_AMOUNT:,} تومان پاداش گرفت."
+                    )
+        except Exception as e:
+            print(f"❌ خطا در رفرال: {e}")
     
-    bot.reply_to(message, 
-        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n⚡ اینترنت آزاد و بدون محدودیت\n🛡️ امنیت کامل و سرعت بالا\n✨ از منوی زیر یکی رو انتخاب کن:", 
+    bot.reply_to(
+        message,
+        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n"
+        f"⚡ اینترنت آزاد و بدون محدودیت\n"
+        f"🛡️ امنیت کامل و سرعت بالا\n"
+        f"✨ از منوی زیر یکی رو انتخاب کن:", 
         reply_markup=main_keyboard(), 
         parse_mode='Markdown'
     )
@@ -359,10 +389,8 @@ def charge_callback(call):
 def process_custom_charge(m):
     user_id = str(m.from_user.id)
     
-    # پاک کردن همه چیز به جز اعداد
     raw_text = m.text.strip()
     
-    # تبدیل اعداد فارسی به انگلیسی
     persian_to_english = {
         '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
         '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
@@ -370,10 +398,8 @@ def process_custom_charge(m):
     for p, e in persian_to_english.items():
         raw_text = raw_text.replace(p, e)
     
-    # حذف تمام کاراکترهای غیرعددی (به جز اعداد انگلیسی)
     raw_text = re.sub(r'[^0-9]', '', raw_text)
     
-    # چک کردن خالی نبودن
     if not raw_text:
         bot.reply_to(m, "❌ لطفاً یک عدد معتبر وارد کن (مثال: 200000):")
         bot.register_next_step_handler(m, process_custom_charge)
@@ -637,14 +663,32 @@ def profile(m):
 @bot.message_handler(func=lambda m: m.text == "👥 دعوت از دوستان")
 @membership_required
 def invite(m):
-    user_id = m.from_user.id
-    data = users.get(str(user_id), {})
-    referral_code = data.get('referral_code', '')
-    bot.reply_to(m, f"🔥 کد دعوت اختصاصی شما:\n`{referral_code}`\n\nلینک دعوت:\n`https://t.me/{bot.get_me().username}?start={referral_code}`", parse_mode='Markdown')
+    user_id = str(m.from_user.id)
+    data = users.get(user_id, {})
+    referral_code = data.get('referral_code', user_id)
+    bot_username = bot.get_me().username
+    
+    invite_link = f"https://t.me/{bot_username}?start={referral_code}"
+    
+    text = f"""🔥 **سیستم دعوت از دوستان**
+
+👤 کد دعوت شما: `{referral_code}`
+🔗 لینک دعوت: `{invite_link}`
+
+📌 **طرز استفاده:**
+۱. لینک بالا رو برای دوستانت بفرست
+۲. هر کسی با لینک شما وارد ربات بشه
+۳. شما {REFERRAL_AMOUNT:,} تومان پاداش میگیری
+
+👥 تعداد دعوت‌های شما: {data.get('referrals', 0)} نفر
+💰 پاداش دریافتی: {data.get('referrals', 0) * REFERRAL_AMOUNT:,} تومان
+
+⚡ هرچه دوستان بیشتری دعوت کنی، پاداش بیشتری میگیری!"""
+    
+    bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
-@membership_required
-def support(m):
+@membership_requireddef support(m):
     bot.reply_to(m, "🆔 @hegzosupport\n۲۴ ساعته")
 
 @bot.message_handler(commands=['users'])
@@ -705,7 +749,7 @@ def unknown(m):
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روشن شد!")
-    print("✅ دستورات جدید: /walletoff و /walleton")
+    print("✅ همه چیز آماده است!")
 
     bot.delete_webhook()
     time.sleep(2)
