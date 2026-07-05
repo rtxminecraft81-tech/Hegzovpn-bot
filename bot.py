@@ -217,7 +217,7 @@ def influencer_menu():
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="b_influencer100_790000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="b_influencer100_990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه تک ۱,۴۹۰,۰۰۰", callback_data="b_influencer100_1490000"))
-    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ３ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="b_influencer100_2490000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
@@ -262,7 +262,7 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== شارژ کیف پول (دکمه‌ای) ========================
+# ======================== شارژ کیف پول ========================
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
@@ -378,8 +378,9 @@ def accept_charge(call):
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
     
-    _, user_id, amount = call.data.split("_")
-    amount = int(amount)
+    parts = call.data.split("_")
+    user_id = parts[2]  # ch_ok_6795169616_200000
+    amount = int(parts[3])
     
     if user_id not in users:
         users[user_id] = {'credit': 0, 'pending_charge': 0, 'active_configs': []}
@@ -389,6 +390,7 @@ def accept_charge(call):
     
     bot.send_message(int(user_id), f"✅ شارژ {amount:,} تومانی شما تایید شد!\n💰 اعتبار جدید: {users[user_id]['credit']:,} تومان")
     bot.answer_callback_query(call.id, "✅ تایید شد")
+    
     try:
         bot.edit_message_caption("✅ تایید شد", call.message.chat.id, call.message.message_id)
     except:
@@ -400,16 +402,18 @@ def reject_charge(call):
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
     
-    user_id = call.data.split("_")[2]
+    parts = call.data.split("_")
+    user_id = parts[2]  # ch_no_6795169616
     
     bot.send_message(int(user_id), "❌ درخواست شارژ شما رد شد. لطفاً با پشتیبانی تماس بگیرید: @hegzosupport")
     bot.answer_callback_query(call.id, "❌ رد شد")
+    
     try:
         bot.edit_message_caption("❌ رد شد", call.message.chat.id, call.message.message_id)
     except:
         pass
 
-# ======================== بقیه بخش‌ها (ساده) ========================
+# ======================== بقیه بخش‌ها ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("lev_"))
 def handle_lev(call):
     menus = {
