@@ -28,6 +28,7 @@ CARD_NUMBER = '5022291525516892'
 CARD_NAME = ' خزایی'
 MIN_CHARGE = 200000
 REFERRAL_AMOUNT = 5000
+COMMISSION_PERCENT = 10  # ۱۰ درصد کمیسیون
 
 # ======================== وضعیت شارژ ========================
 wallet_enabled = True
@@ -51,7 +52,8 @@ def load_users():
                 'invited_by': row.get('invited_by'),
                 'referrals': row.get('referrals', 0),
                 'joined_at': row.get('joined_at', ''),
-                'referral_code': row.get('referral_code', '')
+                'referral_code': row.get('referral_code', ''),
+                'total_commission': row.get('total_commission', 0)  # جمع کل کمیسیون
             }
         return users
     except Exception as e:
@@ -70,7 +72,8 @@ def save_users(users):
                 "invited_by": data.get('invited_by'),
                 "referrals": data.get('referrals', 0),
                 "joined_at": data.get('joined_at', ''),
-                "referral_code": data.get('referral_code', '')
+                "referral_code": data.get('referral_code', ''),
+                "total_commission": data.get('total_commission', 0)
             }).execute()
     except Exception as e:
         print(f"❌ خطا در سیو کاربران: {e}")
@@ -91,7 +94,8 @@ def init_user(user_id, username=""):
             'invited_by': None,
             'referrals': 0,
             'joined_at': str(datetime.now()),
-            'referral_code': referral_code
+            'referral_code': referral_code,
+            'total_commission': 0
         }
         save_users(users)
         print(f"✅ کاربر جدید: {user_id} - کد: {referral_code}")
@@ -538,7 +542,40 @@ def buy_cmd(call):
     
     credit = users[user_id].get('credit', 0)
     if credit >= price:
+        # کم کردن اعتبار
         users[user_id]['credit'] = credit - price
+        
+        # ======================== سیستم کمیسیون ۱۰٪ ========================
+        inviter_id = users[user_id].get('invited_by')
+        if inviter_id and inviter_id in users:
+            commission = int(price * COMMISSION_PERCENT / 100)
+            if commission > 0:
+                users[inviter_id]['credit'] = users[inviter_id].get('credit', 0) + commission
+                users[inviter_id]['total_commission'] = users[inviter_id].get('total_commission', 0) + commission
+                
+                # پیام به دعوت‌کننده
+                try:
+                    bot.send_message(
+                        int(inviter_id),
+                        f"💰 **کمیسیون خرید**\n\n"
+                        f"👤 کاربر زیرمجموعه‌ی شما یک کانفیگ خرید.\n"
+                        f"📦 بسته: {package}\n"
+                        f"💵 مبلغ: {price:,} تومان\n"
+                        f"🎁 کمیسیون شما ({COMMISSION_PERCENT}%): {commission:,} تومان\n\n"
+                        f"💰 اعتبار جدید: {users[inviter_id]['credit']:,} تومان"
+                    )
+                except:
+                    pass
+                
+                # پیام به خریدار
+                try:
+                    bot.send_message(
+                        int(user_id),
+                        f"🎁 {COMMISSION_PERCENT}% کمیسیون خرید شما به دعوت‌کننده‌تان تعلق گرفت."
+                    )
+                except:
+                    pass
+        
         save_users(users)
         username = call.from_user.username or "بدون نام"
         
@@ -671,7 +708,18 @@ def show_config_detail(call):
 def profile(m):
     user_id = str(m.from_user.id)
     data = users.get(user_id, {})
-    bot.reply_to(m, f"👤 حساب کاربری\n💰 اعتبار: {data.get('credit', 0):,}\n📁 کانفیگ: {len(data.get('active_configs', []))}\n👥 دعوت: {data.get('referrals', 0)}")
+    
+    text = f"""👤 **حساب کاربری**
+━━━━━━━━━━━━━━━━━━━━━
+💰 اعتبار: {data.get('credit', 0):,} تومان
+📁 کانفیگ: {len(data.get('active_configs', []))} عدد
+👥 دعوت‌ها: {data.get('referrals', 0)} نفر
+🎁 کمیسیون دریافتی: {data.get('total_commission', 0):,} تومان
+━━━━━━━━━━━━━━━━━━━━━
+🆔 آیدی: {user_id}
+📅 تاریخ عضویت: {data.get('joined_at', 'نامشخص')}"""
+    
+    bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "👥 دعوت از دوستان")
 @membership_required
@@ -679,7 +727,6 @@ def invite(m):
     user_id = str(m.from_user.id)
     data = users.get(user_id, {})
     
-    # اگر کد دعوت نداره، بساز
     if not data.get('referral_code'):
         data['referral_code'] = generate_referral_code(user_id)
         users[user_id] = data
@@ -688,10 +735,7 @@ def invite(m):
     referral_code = data.get('referral_code')
     bot_username = bot.get_me().username
     
-    # لینک دعوت با کد ۶ رقمی
     invite_link = f"https://t.me/{bot_username}?start={referral_code}"
-    
-    # لینک دعوت با آیدی (پشتیبان)
     invite_link_id = f"https://t.me/{bot_username}?start={user_id}"
     
     text = f"""🔥 **سیستم دعوت از دوستان**
@@ -703,13 +747,14 @@ def invite(m):
 📌 **یا با لینک زیر (آیدی):**
 `{invite_link_id}`
 
-📌 **طرز استفاده:**
-۱. لینک بالا رو برای دوستانت بفرست
-۲. هر کسی با لینک شما وارد ربات بشه
-۳. شما {REFERRAL_AMOUNT:,} تومان پاداش میگیری
+━━━━━━━━━━━━━━━━━━━━━
+🎁 **پاداش‌ها:**
+• به ازای هر دعوت: {REFERRAL_AMOUNT:,} تومان
+• کمیسیون خرید: {COMMISSION_PERCENT}% از هر خرید زیرمجموعه
 
 👥 تعداد دعوت‌های شما: {data.get('referrals', 0)} نفر
 💰 پاداش دریافتی: {data.get('referrals', 0) * REFERRAL_AMOUNT:,} تومان
+🎁 کل کمیسیون: {data.get('total_commission', 0):,} تومان
 
 ⚡ هرچه دوستان بیشتری دعوت کنی، پاداش بیشتری میگیری!"""
     
@@ -729,7 +774,7 @@ def list_users(m):
         return
     text = "📊 لیست کاربران:\n"
     for uid, data in users.items():
-        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)} | کد: {data.get('referral_code', '')}\n"
+        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)} | کمیسیون: {data.get('total_commission',0):,}\n"
     bot.reply_to(m, text)
 
 @bot.message_handler(commands=['broadcast'])
