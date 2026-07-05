@@ -132,75 +132,7 @@ def main_keyboard():
     markup.add("🏠 منوی اصلی")
     return markup
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.from_user.id
-    if is_banned(user_id):
-        bot.reply_to(message, "⛔ شما مسدود شده اید!")
-        return
-    if not is_member(user_id):
-        markup = types.InlineKeyboardMarkup()
-        markup.add(
-            types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
-            types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
-        )
-        bot.reply_to(message, 
-            f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی ✅ تایید عضویت کلیک کنید.",
-            reply_markup=markup,
-            parse_mode='Markdown'
-        )
-        return
-    
-    name = message.from_user.first_name
-    init_user(user_id, message.from_user.username or "")
-    
-    if len(message.text.split()) > 1:
-        try:
-            ref_param = message.text.split()[1]
-            try:
-                ref = int(ref_param)
-            except:
-                ref = ref_param
-            if str(ref).startswith('start='):
-                ref = str(ref).replace('start=', '')
-            if str(ref) != str(user_id):
-                if not users.get(str(user_id), {}).get('invited_by'):
-                    inviter = None
-                    try:
-                        ref_int = int(ref)
-                        if str(ref_int) in users:
-                            inviter = str(ref_int)
-                    except:
-                        for uid, data in users.items():
-                            if data.get('username', '').lower() == str(ref).lower():
-                                inviter = uid
-                                break
-                    if inviter and inviter != str(user_id):
-                        users[str(user_id)]['invited_by'] = inviter
-                        users[inviter]['referrals'] += 1
-                        save_users(users)
-                        bot.send_message(int(inviter), 
-                            f"🎉 یک کاربر جدید با لینک شما عضو شد!\n\n👤 {message.from_user.first_name}"
-                        )
-        except:
-            pass
-    
-    bot.reply_to(message, 
-        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n⚡ اینترنت آزاد و بدون محدودیت\n🛡️ امنیت کامل و سرعت بالا\n✨ از منوی زیر یکی رو انتخاب کن:", 
-        reply_markup=main_keyboard(), 
-        parse_mode='Markdown'
-    )
-
-@bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
-@membership_required
-def back_home(m):
-    bot.reply_to(m, "🔥 منوی اصلی:", reply_markup=main_keyboard())
-
-@bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
-@membership_required
-def show_buy(m):
-    bot.reply_to(m, "📊 انتخاب نوع سرویس:", reply_markup=buy_menu())
-
+# ======================== منوهای خرید ========================
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("⭐ اینفلوئنسر", callback_data="lev_influencer"))
@@ -217,7 +149,7 @@ def influencer_menu():
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="b_influencer100_790000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="b_influencer100_990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه تک ۱,۴۹۰,۰۰۰", callback_data="b_influencer100_1490000"))
-    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ３ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="b_influencer100_2490000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
@@ -262,7 +194,7 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== شارژ کیف پول ========================
+# ======================== شارژ ========================
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
@@ -271,12 +203,9 @@ def charge_menu(m):
         init_user(user_id)
     
     text = f"""💳 **شارژ کیف پول**
-
 🏦 شماره کارت: `{CARD_NUMBER}`
 👤 به نام: {CARD_NAME}
-
 💰 حداقل شارژ: {MIN_CHARGE:,} تومان
-
 لطفاً مبلغ مورد نظر را انتخاب کنید:"""
     
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -379,7 +308,7 @@ def accept_charge(call):
         return
     
     parts = call.data.split("_")
-    user_id = parts[2]  # ch_ok_6795169616_200000
+    user_id = parts[2]
     amount = int(parts[3])
     
     if user_id not in users:
@@ -403,7 +332,7 @@ def reject_charge(call):
         return
     
     parts = call.data.split("_")
-    user_id = parts[2]  # ch_no_6795169616
+    user_id = parts[2]
     
     bot.send_message(int(user_id), "❌ درخواست شارژ شما رد شد. لطفاً با پشتیبانی تماس بگیرید: @hegzosupport")
     bot.answer_callback_query(call.id, "❌ رد شد")
@@ -413,7 +342,76 @@ def reject_charge(call):
     except:
         pass
 
-# ======================== بقیه بخش‌ها ========================
+# ======================== دستورات اصلی ========================
+@bot.message_handler(commands=['start'])
+def start(message):
+    user_id = message.from_user.id
+    if is_banned(user_id):
+        bot.reply_to(message, "⛔ شما مسدود شده اید!")
+        return
+    if not is_member(user_id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
+            types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
+        )
+        bot.reply_to(message, 
+            f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی ✅ تایید عضویت کلیک کنید.",
+            reply_markup=markup,
+            parse_mode='Markdown'
+        )
+        return
+    
+    name = message.from_user.first_name
+    init_user(user_id, message.from_user.username or "")
+    
+    if len(message.text.split()) > 1:
+        try:
+            ref_param = message.text.split()[1]
+            try:
+                ref = int(ref_param)
+            except:
+                ref = ref_param
+            if str(ref).startswith('start='):
+                ref = str(ref).replace('start=', '')
+            if str(ref) != str(user_id):
+                if not users.get(str(user_id), {}).get('invited_by'):
+                    inviter = None
+                    try:
+                        ref_int = int(ref)
+                        if str(ref_int) in users:
+                            inviter = str(ref_int)
+                    except:
+                        for uid, data in users.items():
+                            if data.get('username', '').lower() == str(ref).lower():
+                                inviter = uid
+                                break
+                    if inviter and inviter != str(user_id):
+                        users[str(user_id)]['invited_by'] = inviter
+                        users[inviter]['referrals'] += 1
+                        save_users(users)
+                        bot.send_message(int(inviter), 
+                            f"🎉 یک کاربر جدید با لینک شما عضو شد!\n\n👤 {message.from_user.first_name}"
+                        )
+        except:
+            pass
+    
+    bot.reply_to(message, 
+        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n⚡ اینترنت آزاد و بدون محدودیت\n🛡️ امنیت کامل و سرعت بالا\n✨ از منوی زیر یکی رو انتخاب کن:", 
+        reply_markup=main_keyboard(), 
+        parse_mode='Markdown'
+    )
+
+@bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
+@membership_required
+def back_home(m):
+    bot.reply_to(m, "🔥 منوی اصلی:", reply_markup=main_keyboard())
+
+@bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
+@membership_required
+def show_buy(m):
+    bot.reply_to(m, "📊 انتخاب نوع سرویس:", reply_markup=buy_menu())
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith("lev_"))
 def handle_lev(call):
     menus = {
@@ -521,7 +519,7 @@ def send_config(m, user_id, package, price):
             'price': price
         })
         save_users(users)
-    bot.send_message(int(user_id), f"🎁 کانفیگ {package}:\n`{config}`")
+    bot.send_message(int(user_id), f"🎁 کانفیگ {package}:\n`{config}`", parse_mode='Markdown')
     bot.reply_to(m, "✅ ارسال شد")
 
 @bot.message_handler(func=lambda m: m.text == "📁 کانفیگ‌های من")
@@ -544,11 +542,28 @@ def show_config_detail(call):
     user_id = str(call.from_user.id)
     idx = int(call.data.split("_")[1])
     configs = users.get(user_id, {}).get('active_configs', [])
+    
     if idx >= len(configs):
-        bot.answer_callback_query(call.id, "❌ یافت نشد!", show_alert=True)
+        bot.answer_callback_query(call.id, "❌ کانفیگ مورد نظر یافت نشد!", show_alert=True)
         return
+    
     cfg = configs[idx]
-    bot.send_message(int(user_id), f"📦 {cfg.get('package')}\n💰 {cfg.get('price', 0):,}\n📅 {cfg.get('date')}\n🔗 `{cfg.get('config')}`", parse_mode='Markdown')
+    package = cfg.get('package', 'نامشخص')
+    price = cfg.get('price', 0)
+    date = cfg.get('date', 'نامشخص')
+    config = cfg.get('config', 'ندارد')
+    
+    text = f"""📦 **جزئیات کانفیگ**
+━━━━━━━━━━━━━━━━━━━━━
+📌 بسته: {package}
+💰 قیمت: {price:,} تومان
+📅 تاریخ: {date}
+━━━━━━━━━━━━━━━━━━━━━
+🔗 لینک: `{config}`
+━━━━━━━━━━━━━━━━━━━━━
+🆔 پشتیبانی: @hegzosupport"""
+    
+    bot.send_message(call.message.chat.id, text, parse_mode='Markdown')
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda m: m.text == "👤 حساب کاربری")
