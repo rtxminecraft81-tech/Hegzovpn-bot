@@ -25,7 +25,7 @@ CARD_NAME = 'احمد خزایی'
 MIN_CHARGE = 200000
 REFERRAL_COMMISSION = 0.1
 
-# ======================== Supabase ========================
+# Supabase
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -90,7 +90,6 @@ def save_banned_users():
 
 def is_banned(user_id):
     return str(user_id) in banned_users
-
 load_banned_users()
 
 def is_member(user_id):
@@ -130,7 +129,6 @@ def check_membership_callback(call):
     else:
         bot.answer_callback_query(call.id, "❌ هنوز عضو کانال نشده‌اید!", show_alert=True)
 
-# ======================== کیبورد اصلی ========================
 def main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add("💳 شارژ کیف پول", "🛒 خرید کانفیگ")
@@ -201,8 +199,7 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== شارژ کیف پول (نسخه دکمه‌ای بی‌نقص) ========================
-# ======================== دکمه‌های شارژ (با مدیریت کامل) ========================
+# ======================== شارژ کیف پول ========================
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
@@ -221,36 +218,32 @@ def charge_menu(m):
     
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data="charge_200000"),
-        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data="charge_300000"),
-        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data="charge_500000"),
-        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data="charge_1000000"),
+        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data=f"charge_200000"),
+        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data=f"charge_300000"),
+        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data=f"charge_500000"),
+        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data=f"charge_1000000"),
         types.InlineKeyboardButton("✏️ مبلغ دلخواه", callback_data="charge_custom"),
         types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main")
     )
     
     bot.send_message(m.chat.id, text, reply_markup=markup, parse_mode='Markdown')
 
-# ======================== پردازش دکمه‌های شارژ ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("charge_"))
 def charge_callback(call):
     user_id = str(call.from_user.id)
     
-    # اگه کاربر مبلغ دلخواه رو انتخاب کرده
     if call.data == "charge_custom":
         msg = bot.send_message(call.message.chat.id, "💰 لطفاً مبلغ مورد نظر را به تومان وارد کنید:")
         bot.register_next_step_handler(msg, process_custom_charge)
         bot.answer_callback_query(call.id)
         return
     
-    # پردازش مبلغ ثابت
     amount = int(call.data.split("_")[1])
     
     if amount < MIN_CHARGE:
         bot.answer_callback_query(call.id, f"❌ حداقل شارژ {MIN_CHARGE:,} تومان است!", show_alert=True)
         return
     
-    # ثبت مبلغ و رفتن به مرحله رسید
     users[user_id]['pending_charge'] = amount
     save_users(users)
     
@@ -261,11 +254,9 @@ def charge_callback(call):
     )
     bot.answer_callback_query(call.id, "✅ ثبت شد")
 
-# ======================== پردازش مبلغ دلخواه ========================
 def process_custom_charge(m):
     user_id = str(m.from_user.id)
     
-    # پاک کردن کاما، فاصله و تبدیل اعداد فارسی
     raw_text = m.text.replace(',', '').replace(' ', '').replace('،', '')
     persian_to_english = {
         '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
@@ -291,7 +282,6 @@ def process_custom_charge(m):
     
     bot.reply_to(m, f"✅ مبلغ {amount:,} تومان ثبت شد.\n\n📸 لطفاً عکس رسید را بفرستید:")
 
-# ======================== دریافت رسید ========================
 @bot.message_handler(content_types=['photo'])
 @membership_required
 def handle_receipt(m):
@@ -316,7 +306,6 @@ def handle_receipt(m):
     users[user_id]['pending_charge'] = 0
     save_users(users)
 
-# ======================== دکمه‌های ادمین برای شارژ ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ch_ok_"))
 def accept_charge(call):
     if str(call.from_user.id) != ADMIN_ID:
@@ -354,7 +343,7 @@ def reject_charge(call):
     except:
         pass
 
-# ======================== بقیه بخش‌ها (ساده) ========================
+# ======================== بقیه بخش‌ها ========================
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -403,20 +392,13 @@ def start(message):
                         users[inviter]['referrals'] += 1
                         save_users(users)
                         bot.send_message(int(inviter), 
-                            f"🎉 یک کاربر جدید با لینک شما عضو شد!\n\n👤 {message.from_user.first_name}\n📊 تعداد دعوت‌ها: {users[inviter].get('referrals', 0)}"
+                            f"🎉 یک کاربر جدید با لینک شما عضو شد!\n\n👤 {message.from_user.first_name}"
                         )
         except:
             pass
     
     bot.reply_to(message, 
-        f"""🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉
-
-⚡ اینترنت آزاد و بدون محدودیت
-🛡️ امنیت کامل و سرعت بالا
-💎 کیفیت عالی با قیمت مناسب
-
-✨ از منوی زیر یکی رو انتخاب کن:
-""", 
+        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n⚡ اینترنت آزاد و بدون محدودیت\n🛡️ امنیت کامل و سرعت بالا\n✨ از منوی زیر یکی رو انتخاب کن:", 
         reply_markup=main_keyboard(), 
         parse_mode='Markdown'
     )
@@ -477,10 +459,7 @@ def buy_cmd(call):
             commission_amount = int(price * REFERRAL_COMMISSION)
             users[inviter_id]['commission'] = users[inviter_id].get('commission', 0) + commission_amount
             save_users(users)
-            bot.send_message(
-                int(inviter_id),
-                f"💎 **کمیسیون جدید!**\n\n👤 @{username}\n📦 {package}\n💰 {price:,} تومان\n💸 کمیسیون: {commission_amount:,} تومان"
-            )
+            bot.send_message(int(inviter_id), f"💎 کمیسیون جدید: {commission_amount:,} تومان")
         
         admin_text = f"📸 **درخواست کانفیگ!**\n👤 @{username}\n🆔 {user_id}\n📦 {package}\n💰 {price:,}"
         markup = types.InlineKeyboardMarkup(row_width=2)
@@ -490,10 +469,10 @@ def buy_cmd(call):
             types.InlineKeyboardButton("✏️ ارسال دستی", callback_data=f"send_{user_id}_{package}_{price}")
         )
         bot.send_message(ADMIN_ID, admin_text, reply_markup=markup)
-        bot.send_message(int(user_id), f"✅ درخواست خرید {package} ثبت شد. منتظر تایید ادمین باشید.")
+        bot.send_message(int(user_id), f"✅ درخواست خرید {package} ثبت شد.")
         bot.answer_callback_query(call.id, "✅ ثبت شد")
     else:
-        bot.send_message(int(user_id), f"❌ اعتبار کافی نیست!\n💰 اعتبار: {users[user_id].get('credit',0):,} تومان\n💸 نیاز: {price - users[user_id].get('credit',0):,} تومان")
+        bot.send_message(int(user_id), f"❌ اعتبار کافی نیست!\n💰 اعتبار: {credit:,} تومان")
         bot.answer_callback_query(call.id, "❌ اعتبار")
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
@@ -517,7 +496,7 @@ def confirm_config(call):
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
     _, user_id, package, price = call.data.split("_")
-    bot.send_message(int(user_id), f"✅ کانفیگ {package} تایید شد!\n🆔 @hegzosupport")
+    bot.send_message(int(user_id), f"✅ کانفیگ {package} تایید شد!")
     bot.answer_callback_query(call.id, "✅ تایید شد")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("no_"))
@@ -526,7 +505,7 @@ def reject_config(call):
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
     user_id = call.data.split("_")[1]
-    bot.send_message(int(user_id), "❌ درخواست شما رد شد! با پشتیبانی تماس بگیرید: @hegzosupport")
+    bot.send_message(int(user_id), "❌ رد شد! با پشتیبانی تماس بگیرید.")
     bot.answer_callback_query(call.id, "❌ رد شد")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("send_"))
@@ -535,7 +514,7 @@ def manual(call):
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
     _, user_id, package, price = call.data.split("_")
-    bot.send_message(call.message.chat.id, f"📝 لطفاً کانفیگ {package} رو برای کاربر {user_id} بفرستید:")
+    bot.send_message(call.message.chat.id, f"📝 کانفیگ {package} رو بفرست:")
     bot.register_next_step_handler(call.message, lambda m: send_config(m, user_id, package, price))
     bot.answer_callback_query(call.id)
 
@@ -549,7 +528,7 @@ def send_config(m, user_id, package, price):
             'price': price
         })
         save_users(users)
-    bot.send_message(int(user_id), f"🎁 کانفیگ {package} شما:\n\n`{config}`\n\n🆔 @hegzosupport", parse_mode='Markdown')
+    bot.send_message(int(user_id), f"🎁 کانفیگ {package}:\n`{config}`")
     bot.reply_to(m, "✅ ارسال شد")
 
 @bot.message_handler(func=lambda m: m.text == "📁 کانفیگ‌های من")
@@ -558,31 +537,25 @@ def my_configs(m):
     user_id = str(m.from_user.id)
     configs = users.get(user_id, {}).get('active_configs', [])
     if not configs:
-        bot.reply_to(m, "📭 شما هیچ کانفیگ فعالی ندارید!", parse_mode='Markdown')
+        bot.reply_to(m, "📭 کانفیگ فعالی ندارید!")
         return
     
     markup = types.InlineKeyboardMarkup(row_width=1)
     for i, cfg in enumerate(configs):
-        package = cfg.get('package', 'نامشخص')
-        date = cfg.get('date', 'نامشخص')[:10]
-        markup.add(types.InlineKeyboardButton(f"{i+1}. {package} ({date})", callback_data=f"showcfg_{i}"))
+        markup.add(types.InlineKeyboardButton(f"{i+1}. {cfg.get('package', 'نامشخص')}", callback_data=f"showcfg_{i}"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main"))
-    
-    bot.reply_to(m, "📦 **لیست کانفیگ‌های فعال شما**", reply_markup=markup, parse_mode='Markdown')
+    bot.reply_to(m, "📦 لیست کانفیگ‌ها:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("showcfg_"))
 def show_config_detail(call):
     user_id = str(call.from_user.id)
     idx = int(call.data.split("_")[1])
     configs = users.get(user_id, {}).get('active_configs', [])
-    
     if idx >= len(configs):
         bot.answer_callback_query(call.id, "❌ یافت نشد!", show_alert=True)
         return
-    
     cfg = configs[idx]
-    text = f"📦 **{cfg.get('package', 'نامشخص')}**\n💰 {cfg.get('price', 0):,} تومان\n📅 {cfg.get('date', 'نامشخص')}\n🔗 `{cfg.get('config', 'نامشخص')}`"
-    bot.send_message(int(user_id), text, parse_mode='Markdown')
+    bot.send_message(int(user_id), f"📦 {cfg.get('package')}\n💰 {cfg.get('price', 0):,}\n📅 {cfg.get('date')}\n🔗 `{cfg.get('config')}`", parse_mode='Markdown')
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda m: m.text == "👤 حساب کاربری")
@@ -590,14 +563,7 @@ def show_config_detail(call):
 def profile(m):
     user_id = str(m.from_user.id)
     data = users.get(user_id, {})
-    text = f"""👤 **حساب کاربری**
-
-🆔 {user_id}
-💰 اعتبار: {data.get('credit', 0):,} تومان
-📁 کانفیگ: {len(data.get('active_configs', []))}
-👥 دعوت‌ها: {data.get('referrals', 0)}
-💰 کمیسیون: {data.get('commission', 0):,} تومان"""
-    bot.reply_to(m, text, parse_mode='Markdown')
+    bot.reply_to(m, f"👤 حساب کاربری\n💰 اعتبار: {data.get('credit', 0):,}\n📁 کانفیگ: {len(data.get('active_configs', []))}\n👥 دعوت: {data.get('referrals', 0)}\n💰 کمیسیون: {data.get('commission', 0):,}")
 
 @bot.message_handler(func=lambda m: m.text == "👥 دعوت از دوستان")
 @membership_required
@@ -619,10 +585,10 @@ def list_users(m):
     if not users:
         bot.reply_to(m, "📭 هیچ کاربری وجود ندارد.")
         return
-    text = "📊 **لیست کاربران**\n\n"
+    text = "📊 لیست کاربران:\n"
     for uid, data in users.items():
         text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,}\n"
-    bot.reply_to(m, text, parse_mode='Markdown')
+    bot.reply_to(m, text)
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast_cmd(m):
@@ -636,7 +602,7 @@ def do_broadcast(m):
         return
     for uid in users.keys():
         try:
-            bot.send_message(int(uid), f"📢 **پیام از ادمین**\n\n{m.text}", parse_mode='Markdown')
+            bot.send_message(int(uid), f"📢 پیام از ادمین:\n{m.text}")
             time.sleep(0.05)
         except:
             pass
@@ -651,14 +617,14 @@ def ban_unban(m):
         banned = banned_users
         if m.text.startswith('/ban'):
             banned.add(str(uid))
-            bot.send_message(uid, "⛔ شما مسدود شدید!")
+            bot.send_message(uid, "⛔ مسدود شدید!")
         else:
             banned.discard(str(uid))
             bot.send_message(uid, "✅ از مسدودیت خارج شدید!")
         save_banned_users()
         bot.reply_to(m, f"✅ {uid} {'بن' if m.text.startswith('/ban') else 'آنبن'} شد")
     except:
-        bot.reply_to(m, "❌ دستور: /ban [user_id] یا /unban [user_id]")
+        bot.reply_to(m, "❌ /ban [user_id] یا /unban [user_id]")
 
 @bot.message_handler(func=lambda m: True)
 @membership_required
