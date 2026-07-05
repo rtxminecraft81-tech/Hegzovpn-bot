@@ -8,6 +8,7 @@ from flask import Flask
 import threading
 import random
 import string
+import re
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -28,7 +29,7 @@ MIN_CHARGE = 200000
 REFERRAL_AMOUNT = 5000
 
 # ======================== وضعیت شارژ (خاموش/روشن) ========================
-wallet_enabled = True  # به صورت پیش‌فرض فعال است
+wallet_enabled = True
 
 # ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
@@ -133,7 +134,10 @@ def membership_required(func):
 def check_membership_callback(call):
     user_id = call.from_user.id
     if is_member(user_id):
-        bot.edit_message_text("✅ عضویت شما تأیید شد!", call.message.chat.id, call.message.message_id)
+        try:
+            bot.edit_message_text("✅ عضویت شما تأیید شد!", call.message.chat.id, call.message.message_id)
+        except:
+            pass
         bot.send_message(user_id, "🔥 منوی اصلی:", reply_markup=main_keyboard())
     else:
         bot.answer_callback_query(call.id, "❌ هنوز عضو کانال نشده‌اید!", show_alert=True)
@@ -313,10 +317,10 @@ def charge_menu(m):
     
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data=f"charge_200000"),
-        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data=f"charge_300000"),
-        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data=f"charge_500000"),
-        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data=f"charge_1000000"),
+        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data="charge_200000"),
+        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data="charge_300000"),
+        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data="charge_500000"),
+        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data="charge_1000000"),
         types.InlineKeyboardButton("✏️ مبلغ دلخواه", callback_data="charge_custom"),
         types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main")
     )
@@ -328,9 +332,9 @@ def charge_callback(call):
     user_id = str(call.from_user.id)
     
     if call.data == "charge_custom":
+        bot.answer_callback_query(call.id)
         msg = bot.send_message(call.message.chat.id, "💰 لطفاً مبلغ مورد نظر را به تومان وارد کنید:")
         bot.register_next_step_handler(msg, process_custom_charge)
-        bot.answer_callback_query(call.id)
         return
     
     amount = int(call.data.split("_")[1])
@@ -342,6 +346,7 @@ def charge_callback(call):
     users[user_id]['pending_charge'] = amount
     save_users(users)
     
+    bot.answer_callback_query(call.id, "✅ ثبت شد")
     bot.send_message(
         call.message.chat.id,
         f"✅ مبلغ {amount:,} تومان ثبت شد.\n\n📸 لطفاً عکس رسید را بفرستید:"
@@ -350,18 +355,29 @@ def charge_callback(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
     except:
         pass
-    bot.answer_callback_query(call.id, "✅ ثبت شد")
 
 def process_custom_charge(m):
     user_id = str(m.from_user.id)
     
-    raw_text = m.text.replace(',', '').replace(' ', '').replace('،', '')
+    # پاک کردن همه چیز به جز اعداد
+    raw_text = m.text.strip()
+    
+    # تبدیل اعداد فارسی به انگلیسی
     persian_to_english = {
         '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
         '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
     }
     for p, e in persian_to_english.items():
         raw_text = raw_text.replace(p, e)
+    
+    # حذف تمام کاراکترهای غیرعددی (به جز اعداد انگلیسی)
+    raw_text = re.sub(r'[^0-9]', '', raw_text)
+    
+    # چک کردن خالی نبودن
+    if not raw_text:
+        bot.reply_to(m, "❌ لطفاً یک عدد معتبر وارد کن (مثال: 200000):")
+        bot.register_next_step_handler(m, process_custom_charge)
+        return
     
     try:
         amount = int(raw_text)
@@ -465,6 +481,7 @@ def handle_lev(call):
         bot.edit_message_text(f"{titles[call.data]}\n\nلطفاً بسته مورد نظر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=menus[call.data](), parse_mode='Markdown')
     except:
         bot.send_message(call.message.chat.id, f"{titles[call.data]}\n\nلطفاً بسته مورد نظر را انتخاب کنید:", reply_markup=menus[call.data](), parse_mode='Markdown')
+    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("b_"))
 def buy_cmd(call):
@@ -506,6 +523,7 @@ def back_buy(call):
         bot.edit_message_text("📊 انتخاب نوع سرویس:", call.message.chat.id, call.message.message_id, reply_markup=buy_menu())
     except:
         bot.send_message(call.message.chat.id, "📊 انتخاب نوع سرویس:", reply_markup=buy_menu())
+    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_main")
 def back_main(call):
@@ -513,6 +531,7 @@ def back_main(call):
         bot.edit_message_text("🔥 منوی اصلی:", call.message.chat.id, call.message.message_id, reply_markup=main_keyboard())
     except:
         bot.send_message(call.message.chat.id, "🔥 منوی اصلی:", reply_markup=main_keyboard())
+    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ok_"))
 def confirm_config(call):
