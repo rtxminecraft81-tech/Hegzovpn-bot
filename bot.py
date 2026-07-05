@@ -6,6 +6,8 @@ import time
 from datetime import datetime
 from flask import Flask
 import threading
+import random
+import string
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -21,13 +23,19 @@ if not TOKEN:
 ADMIN_ID = '6795169616'
 CHANNEL_USERNAME = '@hegzo_vpn_channle'
 CARD_NUMBER = '5022291525516892'
-CARD_NAME = 'احمد خزایی'
+CARD_NAME = ' خزایی'
 MIN_CHARGE = 200000
+REFERRAL_AMOUNT = 5000
 
+# ======================== وضعیت شارژ (خاموش/روشن) ========================
+wallet_enabled = True  # به صورت پیش‌فرض فعال است
+
+# ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ======================== توابع ذخیره‌سازی ========================
 def load_users():
     response = supabase.table("users").select("*").execute()
     users = {}
@@ -39,7 +47,8 @@ def load_users():
             'pending_charge': row.get('pending_charge', 0),
             'invited_by': row.get('invited_by'),
             'referrals': row.get('referrals', 0),
-            'joined_at': row.get('joined_at', '')
+            'joined_at': row.get('joined_at', ''),
+            'referral_code': row.get('referral_code', '')
         }
     return users
 
@@ -53,7 +62,8 @@ def save_users(users):
             "pending_charge": data.get('pending_charge', 0),
             "invited_by": data.get('invited_by'),
             "referrals": data.get('referrals', 0),
-            "joined_at": data.get('joined_at', '')
+            "joined_at": data.get('joined_at', ''),
+            "referral_code": data.get('referral_code', '')
         }).execute()
 
 def init_user(user_id, username=""):
@@ -65,9 +75,13 @@ def init_user(user_id, username=""):
             'pending_charge': 0,
             'invited_by': None,
             'referrals': 0,
-            'joined_at': str(datetime.now())
+            'joined_at': str(datetime.now()),
+            'referral_code': generate_referral_code(user_id)
         }
         save_users(users)
+
+def generate_referral_code(user_id):
+    return f"REF{user_id}{''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}"
 
 bot = telebot.TeleBot(TOKEN)
 users = load_users()
@@ -148,7 +162,7 @@ def influencer_menu():
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="b_influencer100_790000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="b_influencer100_990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه تک ۱,۴۹۰,۰۰۰", callback_data="b_influencer100_1490000"))
-    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ３ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="b_influencer100_2490000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
@@ -193,6 +207,24 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
+# ======================== دستورات خاموش/روشن کردن شارژ ========================
+@bot.message_handler(commands=['walletoff'])
+def wallet_off(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    global wallet_enabled
+    wallet_enabled = False
+    bot.reply_to(m, "✅ شارژ کیف پول **غیرفعال** شد.")
+
+@bot.message_handler(commands=['walleton'])
+def wallet_on(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    global wallet_enabled
+    wallet_enabled = True
+    bot.reply_to(m, "✅ شارژ کیف پول **فعال** شد.")
+
+# ======================== دستورات اصلی ========================
 @bot.message_handler(commands=['start'])
 def start(message):
     user_id = message.from_user.id
@@ -222,8 +254,6 @@ def start(message):
                 ref = int(ref_param)
             except:
                 ref = ref_param
-            if str(ref).startswith('start='):
-                ref = str(ref).replace('start=', '')
             if str(ref) != str(user_id):
                 if not users.get(str(user_id), {}).get('invited_by'):
                     inviter = None
@@ -233,15 +263,16 @@ def start(message):
                             inviter = str(ref_int)
                     except:
                         for uid, data in users.items():
-                            if data.get('username', '').lower() == str(ref).lower():
+                            if data.get('referral_code', '').lower() == str(ref).lower():
                                 inviter = uid
                                 break
                     if inviter and inviter != str(user_id):
                         users[str(user_id)]['invited_by'] = inviter
                         users[inviter]['referrals'] += 1
+                        users[inviter]['credit'] += REFERRAL_AMOUNT
                         save_users(users)
                         bot.send_message(int(inviter), 
-                            f"🎉 یک کاربر جدید با لینک شما عضو شد!\n\n👤 {message.from_user.first_name}"
+                            f"🎉 یک کاربر جدید با کد شما عضو شد!\n\n👤 {message.from_user.first_name}\n💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!"
                         )
         except:
             pass
@@ -265,6 +296,11 @@ def show_buy(m):
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
+    global wallet_enabled
+    if not wallet_enabled:
+        bot.reply_to(m, "⛔ **این بخش در حال حاضر غیرفعال است.**\n\nلطفاً بعداً مراجعه کنید.", parse_mode='Markdown')
+        return
+    
     user_id = str(m.from_user.id)
     if user_id not in users:
         init_user(user_id)
@@ -583,8 +619,9 @@ def profile(m):
 @membership_required
 def invite(m):
     user_id = m.from_user.id
-    link = f"https://t.me/{bot.get_me().username}?start={user_id}"
-    bot.reply_to(m, f"🔥 لینک دعوت شما:\n{link}")
+    data = users.get(str(user_id), {})
+    referral_code = data.get('referral_code', '')
+    bot.reply_to(m, f"🔥 کد دعوت اختصاصی شما:\n`{referral_code}`\n\nلینک دعوت:\n`https://t.me/{bot.get_me().username}?start={referral_code}`", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
 @membership_required
@@ -600,7 +637,7 @@ def list_users(m):
         return
     text = "📊 لیست کاربران:\n"
     for uid, data in users.items():
-        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,}\n"
+        text += f"🆔 {uid} | @{data.get('username', '')} | اعتبار: {data.get('credit',0):,} | دعوت: {data.get('referrals',0)}\n"
     bot.reply_to(m, text)
 
 @bot.message_handler(commands=['broadcast'])
@@ -613,13 +650,16 @@ def broadcast_cmd(m):
 def do_broadcast(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
+    success = 0
+    fail = 0
     for uid in users.keys():
         try:
             bot.send_message(int(uid), f"📢 پیام از ادمین:\n{m.text}")
+            success += 1
             time.sleep(0.05)
         except:
-            pass
-    bot.reply_to(m, "✅ ارسال شد!")
+            fail += 1
+    bot.reply_to(m, f"✅ ارسال شد!\n✅ موفق: {success}\n❌ ناموفق: {fail}")
 
 @bot.message_handler(commands=['ban', 'unban'])
 def ban_unban(m):
@@ -627,12 +667,11 @@ def ban_unban(m):
         return
     try:
         uid = int(m.text.split()[1])
-        banned = banned_users
         if m.text.startswith('/ban'):
-            banned.add(str(uid))
+            banned_users.add(str(uid))
             bot.send_message(uid, "⛔ مسدود شدید!")
         else:
-            banned.discard(str(uid))
+            banned_users.discard(str(uid))
             bot.send_message(uid, "✅ از مسدودیت خارج شدید!")
         save_banned_users()
         bot.reply_to(m, f"✅ {uid} {'بن' if m.text.startswith('/ban') else 'آنبن'} شد")
@@ -647,6 +686,7 @@ def unknown(m):
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print(f"🤖 Hegzo VPN روشن شد!")
+    print("✅ دستورات جدید: /walletoff و /walleton")
 
     bot.delete_webhook()
     time.sleep(2)
