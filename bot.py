@@ -230,7 +230,7 @@ def start(message):
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
-    # سیستم دعوت اینفلوئنسری
+    # سیستم دعوت
     if len(message.text.split()) > 1:
         try:
             ref_param = message.text.split()[1]
@@ -552,7 +552,7 @@ def back_to_configs(call):
     except:
         bot.send_message(call.message.chat.id, "📦 **لیست کانفیگ‌های فعال شما**\n\nلطفاً یکی را انتخاب کنید:", reply_markup=markup, parse_mode='Markdown')
 
-# ======================== شارژ کیف پول ========================
+# ======================== شارژ کیف پول (ساده و بی‌نقص) ========================
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
@@ -574,26 +574,41 @@ def charge_menu(m):
 
 def get_amount(m):
     user_id = str(m.from_user.id)
+    
+    # پردازش مبلغ (پشتیبانی از کاما، فاصله و اعداد فارسی)
+    raw_text = m.text.replace(',', '').replace(' ', '').replace('،', '')
+    persian_to_english = {
+        '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+        '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+    }
+    for p, e in persian_to_english.items():
+        raw_text = raw_text.replace(p, e)
+    
     try:
-        amount = int(m.text.replace(',', '').replace(' ', ''))
-        if amount < MIN_CHARGE:
-            bot.reply_to(m, f"❌ حداقل شارژ {MIN_CHARGE:,} تومان است. لطفاً مجدداً مبلغ را وارد کنید:")
-            bot.register_next_step_handler(m, get_amount)
-            return
-        users[user_id]['pending_charge'] = amount
-        save_users(users)
-        bot.reply_to(m, f"✅ مبلغ {amount:,} تومان ثبت شد.\n\n📸 لطفاً عکس رسید را بفرستید:")
+        amount = int(raw_text)
     except:
-        bot.reply_to(m, "❌ لطفاً یک عدد معتبر وارد کنید:")
+        bot.reply_to(m, "❌ لطفاً یک عدد معتبر وارد کنید (مثال: 200000)")
         bot.register_next_step_handler(m, get_amount)
+        return
+    
+    if amount < MIN_CHARGE:
+        bot.reply_to(m, f"❌ حداقل شارژ {MIN_CHARGE:,} تومان است. لطفاً مجدداً مبلغ را وارد کنید:")
+        bot.register_next_step_handler(m, get_amount)
+        return
+    
+    users[user_id]['pending_charge'] = amount
+    save_users(users)
+    
+    bot.reply_to(m, f"✅ مبلغ {amount:,} تومان ثبت شد.\n\n📸 لطفاً عکس رسید را بفرستید:")
 
 @bot.message_handler(content_types=['photo'])
 @membership_required
-def receipt(m):
+def handle_receipt(m):
     user_id = str(m.from_user.id)
     pending = users.get(user_id, {}).get('pending_charge', 0)
+    
     if pending == 0:
-        bot.reply_to(m, "❌ شما هیچ درخواست شارژ فعالی ندارید. لطفاً ابتدا از منو مبلغ را وارد کنید.", reply_markup=main_keyboard())
+        bot.reply_to(m, "❌ شما هیچ درخواست شارژ فعالی ندارید. ابتدا از منو مبلغ را وارد کنید.", reply_markup=main_keyboard())
         return
     
     caption = f"💰 درخواست شارژ\n👤 @{m.from_user.username or 'بدون نام'}\n🆔 {user_id}\n💸 مبلغ: {pending:,} تومان"
@@ -740,6 +755,7 @@ if __name__ == '__main__':
     print("✅ سیستم دعوت اینفلوئنسری با کمیسیون ۱۰% فعال شد!")
     print("✅ دکمه‌های ادمین برای تایید/رد کانفیگ و شارژ فعال شد!")
     print("✅ دستورات ادمین (users, broadcast, ban, unban, banned) فعال شد!")
+    print("✅ بخش شارژ با پردازش اعداد فارسی، کاما و فاصله فعال شد!")
 
     bot.delete_webhook()
     time.sleep(2)
