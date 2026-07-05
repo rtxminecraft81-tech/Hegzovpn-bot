@@ -202,6 +202,7 @@ def multi_menu():
     return markup
 
 # ======================== شارژ کیف پول (نسخه دکمه‌ای بی‌نقص) ========================
+# ======================== دکمه‌های شارژ (با مدیریت کامل) ========================
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
 def charge_menu(m):
@@ -220,32 +221,36 @@ def charge_menu(m):
     
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data=f"charge_200000"),
-        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data=f"charge_300000"),
-        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data=f"charge_500000"),
-        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data=f"charge_1000000"),
+        types.InlineKeyboardButton("۲۰۰,۰۰۰ تومان", callback_data="charge_200000"),
+        types.InlineKeyboardButton("۳۰۰,۰۰۰ تومان", callback_data="charge_300000"),
+        types.InlineKeyboardButton("۵۰۰,۰۰۰ تومان", callback_data="charge_500000"),
+        types.InlineKeyboardButton("۱,۰۰۰,۰۰۰ تومان", callback_data="charge_1000000"),
         types.InlineKeyboardButton("✏️ مبلغ دلخواه", callback_data="charge_custom"),
         types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main")
     )
     
-    bot.reply_to(m, text, reply_markup=markup, parse_mode='Markdown')
+    bot.send_message(m.chat.id, text, reply_markup=markup, parse_mode='Markdown')
 
+# ======================== پردازش دکمه‌های شارژ ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("charge_"))
-def charge_amount(call):
+def charge_callback(call):
     user_id = str(call.from_user.id)
     
+    # اگه کاربر مبلغ دلخواه رو انتخاب کرده
     if call.data == "charge_custom":
-        bot.edit_message_text("💰 لطفاً مبلغ مورد نظر را به تومان وارد کنید:", call.message.chat.id, call.message.message_id)
-        bot.register_next_step_handler(call.message, get_custom_amount)
+        msg = bot.send_message(call.message.chat.id, "💰 لطفاً مبلغ مورد نظر را به تومان وارد کنید:")
+        bot.register_next_step_handler(msg, process_custom_charge)
         bot.answer_callback_query(call.id)
         return
     
+    # پردازش مبلغ ثابت
     amount = int(call.data.split("_")[1])
     
     if amount < MIN_CHARGE:
         bot.answer_callback_query(call.id, f"❌ حداقل شارژ {MIN_CHARGE:,} تومان است!", show_alert=True)
         return
     
+    # ثبت مبلغ و رفتن به مرحله رسید
     users[user_id]['pending_charge'] = amount
     save_users(users)
     
@@ -256,9 +261,11 @@ def charge_amount(call):
     )
     bot.answer_callback_query(call.id, "✅ ثبت شد")
 
-def get_custom_amount(m):
+# ======================== پردازش مبلغ دلخواه ========================
+def process_custom_charge(m):
     user_id = str(m.from_user.id)
     
+    # پاک کردن کاما، فاصله و تبدیل اعداد فارسی
     raw_text = m.text.replace(',', '').replace(' ', '').replace('،', '')
     persian_to_english = {
         '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
@@ -270,13 +277,13 @@ def get_custom_amount(m):
     try:
         amount = int(raw_text)
     except:
-        bot.reply_to(m, "❌ عدد معتبر نیست. دوباره تلاش کن:")
-        bot.register_next_step_handler(m, get_custom_amount)
+        bot.reply_to(m, "❌ عدد معتبر نیست. دوباره تلاش کن (مثال: 200000):")
+        bot.register_next_step_handler(m, process_custom_charge)
         return
     
     if amount < MIN_CHARGE:
         bot.reply_to(m, f"❌ حداقل شارژ {MIN_CHARGE:,} تومان است. دوباره وارد کن:")
-        bot.register_next_step_handler(m, get_custom_amount)
+        bot.register_next_step_handler(m, process_custom_charge)
         return
     
     users[user_id]['pending_charge'] = amount
@@ -284,6 +291,7 @@ def get_custom_amount(m):
     
     bot.reply_to(m, f"✅ مبلغ {amount:,} تومان ثبت شد.\n\n📸 لطفاً عکس رسید را بفرستید:")
 
+# ======================== دریافت رسید ========================
 @bot.message_handler(content_types=['photo'])
 @membership_required
 def handle_receipt(m):
@@ -308,11 +316,13 @@ def handle_receipt(m):
     users[user_id]['pending_charge'] = 0
     save_users(users)
 
+# ======================== دکمه‌های ادمین برای شارژ ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("ch_ok_"))
 def accept_charge(call):
     if str(call.from_user.id) != ADMIN_ID:
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
+    
     _, user_id, amount = call.data.split("_")
     amount = int(amount)
     
@@ -334,6 +344,7 @@ def reject_charge(call):
     if str(call.from_user.id) != ADMIN_ID:
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
+    
     user_id = call.data.split("_")[2]
     
     bot.send_message(int(user_id), "❌ درخواست شارژ شما رد شد. لطفاً با پشتیبانی تماس بگیرید: @hegzosupport")
