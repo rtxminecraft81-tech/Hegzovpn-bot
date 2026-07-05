@@ -148,7 +148,7 @@ def influencer_menu():
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="b_influencer100_790000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="b_influencer100_990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه تک ۱,۴۹۰,۰۰۰", callback_data="b_influencer100_1490000"))
-    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
+    markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ３ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="b_influencer100_1990000"))
     markup.add(types.InlineKeyboardButton("🎬 ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="b_influencer100_2490000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
@@ -437,9 +437,9 @@ def buy_cmd(call):
         bot.answer_callback_query(call.id, "❌ شما مسدود شده اید!", show_alert=True)
         return
     
-    parts = call.data.split("_")
-    price = int(parts[-1])
-    package = "_".join(parts[1:-1])
+    data_parts = call.data.split("_")
+    price = int(data_parts[-1])
+    package = "_".join(data_parts[1:-1])
     
     if user_id not in users:
         init_user(user_id)
@@ -483,7 +483,11 @@ def confirm_config(call):
     if str(call.from_user.id) != ADMIN_ID:
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
-    _, user_id, package, price = call.data.split("_")
+    parts = call.data.split("_")
+    user_id = parts[1]
+    package = "_".join(parts[2:-1])
+    price = int(parts[-1])
+    
     bot.send_message(int(user_id), f"✅ کانفیگ {package} تایید شد!")
     bot.answer_callback_query(call.id, "✅ تایید شد")
 
@@ -501,7 +505,11 @@ def manual(call):
     if str(call.from_user.id) != ADMIN_ID:
         bot.answer_callback_query(call.id, "⛔ فقط ادمین!", show_alert=True)
         return
-    _, user_id, package, price = call.data.split("_")
+    parts = call.data.split("_")
+    user_id = parts[1]
+    package = "_".join(parts[2:-1])
+    price = int(parts[-1])
+    
     bot.send_message(call.message.chat.id, f"📝 کانفیگ {package} رو بفرست:")
     bot.register_next_step_handler(call.message, lambda m: send_config(m, user_id, package, price))
     bot.answer_callback_query(call.id)
