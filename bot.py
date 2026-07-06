@@ -30,7 +30,7 @@ CARD_NUMBER = os.environ.get('CARD_NUMBER', '6037701210877582')
 CARD_NAME = os.environ.get('CARD_NAME', 'خزایی')
 
 MIN_CHARGE = 200000
-REFERRAL_AMOUNT = 5000
+REFERRAL_AMOUNT = 0  # ❌ پاداش دعوت حذف شد
 COMMISSION_PERCENT = 10
 
 # ======================== وضعیت‌ها ========================
@@ -169,7 +169,7 @@ def main_keyboard():
     markup.add("🏠 منوی اصلی")
     return markup
 
-# ======================== منوهای خرید جدید ========================
+# ======================== منوهای خرید ========================
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("🚀 اقتصادی", callback_data="cat_economic"))
@@ -332,7 +332,7 @@ def start(message):
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
-    # سیستم رفرال
+    # ======================== سیستم رفرال (بدون پاداش دعوت) ========================
     if len(message.text.split()) > 1:
         try:
             ref_param = message.text.split()[1]
@@ -353,17 +353,39 @@ def start(message):
                 if inviter_id:
                     users[str(user_id)]['invited_by'] = inviter_id
                     users[inviter_id]['referrals'] = users[inviter_id].get('referrals', 0) + 1
-                    users[inviter_id]['credit'] = users[inviter_id].get('credit', 0) + REFERRAL_AMOUNT
+                    # ❌ پاداش دعوت حذف شد (REFERRAL_AMOUNT = 0)
                     save_users(users)
                     try:
-                        bot.send_message(int(inviter_id), f"🎉 یک کاربر جدید با کد شما عضو شد!\n👤 {message.from_user.first_name}\n💰 {REFERRAL_AMOUNT:,} تومان به حسابت اضافه شد!")
+                        bot.send_message(
+                            int(inviter_id),
+                            f"🎉 یک کاربر جدید با کد شما عضو شد!\n"
+                            f"👤 {message.from_user.first_name}\n"
+                            f"🆔 {user_id}\n"
+                            f"💎 از خرید بعدی ۱۰٪ کمیسیون دریافت میکنی!"
+                        )
                     except:
                         pass
-                    bot.reply_to(message, f"✅ شما با کد دعوت `{ref_param}` عضو شدید!\n🎁 دعوت‌کننده شما {REFERRAL_AMOUNT:,} تومان پاداش گرفت.")
+                    bot.reply_to(
+                        message,
+                        f"✅ شما با کد دعوت `{ref_param}` عضو شدید!"
+                    )
+                else:
+                    bot.reply_to(
+                        message,
+                        f"⚠️ کد دعوت `{ref_param}` معتبر نیست!"
+                    )
         except:
             pass
     
-    bot.reply_to(message, f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n⚡ اینترنت آزاد و بدون محدودیت\n🛡️ امنیت کامل و سرعت بالا\n✨ از منوی زیر یکی رو انتخاب کن:", reply_markup=main_keyboard(), parse_mode='Markdown')
+    bot.reply_to(
+        message,
+        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n"
+        f"⚡ اینترنت آزاد و بدون محدودیت\n"
+        f"🛡️ امنیت کامل و سرعت بالا\n"
+        f"✨ از منوی زیر یکی رو انتخاب کن:", 
+        reply_markup=main_keyboard(), 
+        parse_mode='Markdown'
+    )
 
 @bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
 @membership_required
@@ -532,7 +554,6 @@ def buy_cmd(call):
     if user_id not in users:
         init_user(user_id)
     
-    # نمایش پیام تخفیف
     if discount_enabled and discounts:
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(types.InlineKeyboardButton("🎯 وارد کردن کد تخفیف", callback_data=f"discount_{user_id}_{price}_{package}"))
@@ -547,7 +568,6 @@ def buy_cmd(call):
         bot.answer_callback_query(call.id)
         return
     
-    # ادامه بدون تخفیف
     process_purchase(user_id, package, price, call)
 
 # ======================== توابع خرید ========================
@@ -572,7 +592,7 @@ def process_purchase(user_id, package, price, call=None, discount_code=None):
     if credit >= price:
         users[user_id]['credit'] = credit - price
         
-        # کمیسیون
+        # ======================== سیستم کمیسیون (۱۰٪) ========================
         inviter_id = users[user_id].get('invited_by')
         if inviter_id and inviter_id in users:
             commission = int(original_price * COMMISSION_PERCENT / 100)
@@ -580,9 +600,18 @@ def process_purchase(user_id, package, price, call=None, discount_code=None):
                 users[inviter_id]['credit'] = users[inviter_id].get('credit', 0) + commission
                 users[inviter_id]['total_commission'] = users[inviter_id].get('total_commission', 0) + commission
                 try:
-                    bot.send_message(int(inviter_id), f"💰 کمیسیون خرید\n📦 {package}\n💵 {original_price:,} تومان\n🎁 {commission:,} تومان")
+                    bot.send_message(
+                        int(inviter_id),
+                        f"💰 **کمیسیون خرید**\n\n"
+                        f"👤 کاربر زیرمجموعه‌ی شما یک کانفیگ خرید.\n"
+                        f"📦 بسته: {package}\n"
+                        f"💵 مبلغ اصلی: {original_price:,} تومان\n"
+                        f"🎁 کمیسیون شما ({COMMISSION_PERCENT}%): {commission:,} تومان\n\n"
+                        f"💰 اعتبار جدید: {users[inviter_id]['credit']:,} تومان"
+                    )
                 except:
                     pass
+        # ======================================================
         
         save_users(users)
         username = users[user_id].get('username', 'بدون نام')
@@ -767,12 +796,19 @@ def invite(m):
     bot_username = bot.get_me().username
     invite_link = f"https://t.me/{bot_username}?start={referral_code}"
     text = f"""🔥 **سیستم دعوت از دوستان**
-👤 کد دعوت: `{referral_code}`
-🔗 لینک: `{invite_link}`
+
+👤 کد دعوت شما: `{referral_code}`
+🔗 لینک دعوت: `{invite_link}`
+
 ━━━━━━━━━━━━━━━━━━━━━
-🎁 پاداش دعوت: {REFERRAL_AMOUNT:,} تومان
-🎁 کمیسیون خرید: {COMMISSION_PERCENT}%
-👥 تعداد دعوت‌ها: {data.get('referrals', 0)}"""
+🎁 **پاداش‌ها:**
+• پاداش دعوت: {REFERRAL_AMOUNT:,} تومان (غیرفعال)
+• کمیسیون خرید: {COMMISSION_PERCENT}% از هر خرید زیرمجموعه
+
+👥 تعداد دعوت‌ها: {data.get('referrals', 0)} نفر
+🎁 کل کمیسیون: {data.get('total_commission', 0):,} تومان
+
+⚡ هرچه دوستان بیشتری دعوت کنی، کمیسیون بیشتری میگیری!"""
     bot.reply_to(m, text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: m.text == "🆘 پشتیبانی")
@@ -838,6 +874,7 @@ def unknown(m):
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print("🤖 Hegzo VPN روشن شد!")
+    print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
