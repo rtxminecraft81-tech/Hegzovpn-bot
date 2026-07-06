@@ -24,14 +24,21 @@ if not TOKEN:
 
 ADMIN_ID = '6795169616'
 CHANNEL_USERNAME = '@hegzo_vpn_channle'
-CARD_NUMBER = '5022291525516892'
-CARD_NAME = ' خزایی'
+
+# ======================== اطلاعات کارت (از متغیر محیطی یا مستقیم) ========================
+CARD_NUMBER = os.environ.get('CARD_NUMBER', '6037701210877582')
+CARD_NAME = os.environ.get('CARD_NAME', 'خزایی')
+
 MIN_CHARGE = 200000
 REFERRAL_AMOUNT = 5000
-COMMISSION_PERCENT = 10  # ۱۰ درصد کمیسیون
+COMMISSION_PERCENT = 10
 
 # ======================== وضعیت شارژ ========================
 wallet_enabled = True
+
+# ======================== دیکشنری تخفیف‌ها ========================
+discounts = {}  # {'CODE': {'percent': 10, 'amount': 0, 'uses': 5, 'used': 0}}
+discount_enabled = True
 
 # ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
@@ -53,7 +60,7 @@ def load_users():
                 'referrals': row.get('referrals', 0),
                 'joined_at': row.get('joined_at', ''),
                 'referral_code': row.get('referral_code', ''),
-                'total_commission': row.get('total_commission', 0)  # جمع کل کمیسیون
+                'total_commission': row.get('total_commission', 0)
             }
         return users
     except Exception as e:
@@ -79,7 +86,6 @@ def save_users(users):
         print(f"❌ خطا در سیو کاربران: {e}")
 
 def generate_referral_code(user_id):
-    """تولید کد دعوت ۶ رقمی منحصربه‌فرد"""
     hash_object = hashlib.md5(str(user_id).encode())
     return hash_object.hexdigest()[:6].upper()
 
@@ -227,7 +233,70 @@ def multi_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== دستورات ادمین ========================
+# ======================== دستورات ادمین (تخفیف) ========================
+@bot.message_handler(commands=['discount'])
+def add_discount(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    try:
+        parts = m.text.split()
+        code = parts[1].upper()
+        value = int(parts[2])  # میتونه درصد یا مبلغ ثابت باشه
+        uses = int(parts[3]) if len(parts) > 3 else 999
+        discount_type = 'percent' if value <= 100 else 'amount'
+        discounts[code] = {
+            'value': value,
+            'type': discount_type,
+            'uses': uses,
+            'used': 0
+        }
+        bot.reply_to(m, f"✅ کد تخفیف {code} با {value}{'%' if discount_type == 'percent' else ' تومان'} و {uses} بار استفاده ایجاد شد.")
+    except:
+        bot.reply_to(m, "❌ /discount [کد] [مقدار] [تعداد استفاده]\nمثال: /discount OFF15 15 999 (۱۵ درصد)\nمثال: /discount OFF15K 15000 999 (۱۵ هزار تومان)")
+
+@bot.message_handler(commands=['discounts'])
+def list_discounts(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    if not discounts:
+        bot.reply_to(m, "📭 هیچ کد تخفیفی وجود ندارد.")
+        return
+    text = "📊 لیست تخفیف‌ها:\n"
+    for code, data in discounts.items():
+        text += f"🔹 {code}: {data['value']}{'%' if data['type'] == 'percent' else ' تومان'} - {data['used']}/{data['uses']}\n"
+    bot.reply_to(m, text)
+
+@bot.message_handler(commands=['deldiscount'])
+def del_discount(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    try:
+        code = m.text.split()[1].upper()
+        if code in discounts:
+            del discounts[code]
+            bot.reply_to(m, f"✅ کد تخفیف {code} حذف شد!")
+        else:
+            bot.reply_to(m, f"❌ کد {code} وجود ندارد!")
+    except:
+        bot.reply_to(m, "❌ /deldiscount [کد]")
+
+@bot.message_handler(commands=['discountoff'])
+def discount_off(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    global discount_enabled
+    discount_enabled = False
+    bot.reply_to(m, "✅ همه تخفیف‌ها غیرفعال شدند!")
+
+@bot.message_handler(commands=['discounton'])
+def discount_on(m):
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    global discount_enabled
+    discount_enabled = True
+    bot.reply_to(m, "✅ سیستم تخفیف فعال شد! (برای افزودن کد جدید از /discount استفاده کن)")
+
+# ======================== دستورات ادمین (شارژ) ========================
 @bot.message_handler(commands=['walletoff'])
 def wallet_off(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -276,14 +345,12 @@ def start(message):
             if users.get(str(user_id), {}).get('invited_by') is None:
                 inviter_id = None
                 
-                # ۱. بررسی با کد دعوت (۶ رقمی)
                 for uid, data in users.items():
                     if data.get('referral_code', '').upper() == ref_param.upper():
                         if uid != str(user_id):
                             inviter_id = uid
                             break
                 
-                # ۲. بررسی با آیدی
                 if inviter_id is None:
                     try:
                         ref_int = int(ref_param)
@@ -541,45 +608,76 @@ def buy_cmd(call):
         init_user(user_id)
     
     credit = users[user_id].get('credit', 0)
+    
+    # ======================== سیستم تخفیف ========================
+    discount_text = ""
+    if discount_enabled and discounts:
+        # پیام برای وارد کردن کد تخفیف
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(types.InlineKeyboardButton("🎯 وارد کردن کد تخفیف", callback_data=f"enter_discount_{user_id}_{price}_{package}"))
+        markup.add(types.InlineKeyboardButton("⏭️ ادامه بدون تخفیف", callback_data=f"buy_no_discount_{user_id}_{price}_{package}"))
+        
+        bot.send_message(
+            int(user_id),
+            f"📦 بسته: {package}\n💰 قیمت: {price:,} تومان\n\n🎯 اگر کد تخفیف داری، روی دکمه زیر بزن:",
+            reply_markup=markup
+        )
+        bot.answer_callback_query(call.id)
+        return
+    
+    # ادامه خرید بدون تخفیف
+    process_purchase(user_id, package, price, call)
+
+def process_purchase(user_id, package, price, call=None, discount_code=None):
+    credit = users[user_id].get('credit', 0)
+    original_price = price
+    
+    # اعمال تخفیف
+    if discount_code and discount_code in discounts:
+        disc = discounts[discount_code]
+        if disc['used'] < disc['uses']:
+            if disc['type'] == 'percent':
+                discount_amount = int(price * disc['value'] / 100)
+            else:
+                discount_amount = disc['value']
+            
+            price = price - discount_amount
+            if price < 0:
+                price = 0
+            
+            discounts[discount_code]['used'] += 1
+            discount_text = f"\n🎁 تخفیف: {discount_amount:,} تومان"
+        else:
+            discount_text = "\n❌ کد تخفیف منقضی شده!"
+    
     if credit >= price:
-        # کم کردن اعتبار
         users[user_id]['credit'] = credit - price
         
-        # ======================== سیستم کمیسیون ۱۰٪ ========================
+        # سیستم کمیسیون
         inviter_id = users[user_id].get('invited_by')
         if inviter_id and inviter_id in users:
-            commission = int(price * COMMISSION_PERCENT / 100)
+            commission = int(original_price * COMMISSION_PERCENT / 100)
             if commission > 0:
                 users[inviter_id]['credit'] = users[inviter_id].get('credit', 0) + commission
                 users[inviter_id]['total_commission'] = users[inviter_id].get('total_commission', 0) + commission
                 
-                # پیام به دعوت‌کننده
                 try:
                     bot.send_message(
                         int(inviter_id),
                         f"💰 **کمیسیون خرید**\n\n"
                         f"👤 کاربر زیرمجموعه‌ی شما یک کانفیگ خرید.\n"
                         f"📦 بسته: {package}\n"
-                        f"💵 مبلغ: {price:,} تومان\n"
+                        f"💵 مبلغ اصلی: {original_price:,} تومان\n"
                         f"🎁 کمیسیون شما ({COMMISSION_PERCENT}%): {commission:,} تومان\n\n"
                         f"💰 اعتبار جدید: {users[inviter_id]['credit']:,} تومان"
                     )
                 except:
                     pass
-                
-                # پیام به خریدار
-                try:
-                    bot.send_message(
-                        int(user_id),
-                        f"🎁 {COMMISSION_PERCENT}% کمیسیون خرید شما به دعوت‌کننده‌تان تعلق گرفت."
-                    )
-                except:
-                    pass
         
         save_users(users)
-        username = call.from_user.username or "بدون نام"
+        username = users[user_id].get('username', 'بدون نام')
         
-        admin_text = f"📸 درخواست کانفیگ!\n👤 @{username}\n🆔 {user_id}\n📦 {package}\n💰 {price:,} تومان"
+        admin_text = f"📸 درخواست کانفیگ!\n👤 @{username}\n🆔 {user_id}\n📦 {package}\n💰 قیمت اصلی: {original_price:,} تومان\n💸 پرداخت: {price:,} تومان{discount_text}"
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("✅ تایید", callback_data=f"ok_{user_id}_{package}_{price}"),
@@ -587,11 +685,47 @@ def buy_cmd(call):
             types.InlineKeyboardButton("✏️ ارسال دستی", callback_data=f"send_{user_id}_{package}_{price}")
         )
         bot.send_message(ADMIN_ID, admin_text, reply_markup=markup)
-        bot.send_message(int(user_id), f"✅ درخواست خرید {package} ثبت شد.")
-        bot.answer_callback_query(call.id, "✅ ثبت شد")
+        bot.send_message(int(user_id), f"✅ درخواست خرید {package} ثبت شد.{discount_text}")
+        if call:
+            bot.answer_callback_query(call.id, "✅ ثبت شد")
     else:
-        bot.send_message(int(user_id), f"❌ اعتبار کافی نیست!\n💰 اعتبار: {credit:,} تومان")
-        bot.answer_callback_query(call.id, "❌ اعتبار")
+        bot.send_message(int(user_id), f"❌ اعتبار کافی نیست!\n💰 اعتبار: {credit:,} تومان\n💰 قیمت: {price:,} تومان")
+        if call:
+            bot.answer_callback_query(call.id, "❌ اعتبار")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("enter_discount_"))
+def enter_discount(call):
+    parts = call.data.split("_")
+    user_id = parts[2]
+    price = parts[3]
+    package = "_".join(parts[4:])
+    
+    bot.send_message(call.message.chat.id, "🎯 لطفاً کد تخفیف خود را وارد کنید:")
+    bot.register_next_step_handler(call.message, lambda m: apply_discount(m, user_id, int(price), package))
+    bot.answer_callback_query(call.id)
+
+def apply_discount(m, user_id, price, package):
+    code = m.text.strip().upper()
+    
+    if code in discounts and discounts[code]['used'] < discounts[code]['uses']:
+        process_purchase(user_id, package, price, discount_code=code)
+    else:
+        bot.reply_to(m, "❌ کد تخفیف نامعتبر یا منقضی شده است! لطفاً دوباره تلاش کنید.")
+        # دوباره فرصت بده
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(types.InlineKeyboardButton("🎯 وارد کردن مجدد کد تخفیف", callback_data=f"enter_discount_{user_id}_{price}_{package}"))
+        markup.add(types.InlineKeyboardButton("⏭️ ادامه بدون تخفیف", callback_data=f"buy_no_discount_{user_id}_{price}_{package}"))
+        bot.send_message(m.chat.id, "🔄 لطفاً انتخاب کنید:", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("buy_no_discount_"))
+def buy_no_discount(call):
+    parts = call.data.split("_")
+    user_id = parts[3]
+    price = int(parts[4])
+    package = "_".join(parts[5:])
+    
+    process_purchase(user_id, package, price, call)
+    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
