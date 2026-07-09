@@ -183,6 +183,7 @@ def buy_menu():
 def economic_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("🚀 ۱۰۰ گیگ - یک ماهه ۱۹۹,۰۰۰", callback_data="buy_economic100_199000"))
+    markup.add(types.InlineKeyboardButton("🚀 ۱۰۰ گیگ مولتی‌لوکیشن - سرعت موشکی ۲۴۹,۰۰۰", callback_data="buy_economic100_249000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -875,6 +876,7 @@ if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
+    print("✅ کانفیگ جدید مولتی‌لوکیشن ۱۰۰ گیگ ۲۴۹,۰۰۰ تومان اضافه شد!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
