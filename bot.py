@@ -30,7 +30,7 @@ CARD_NUMBER = os.environ.get('CARD_NUMBER', '6037701210877582')
 CARD_NAME = os.environ.get('CARD_NAME', 'خزایی')
 
 MIN_CHARGE = 200000
-REFERRAL_AMOUNT = 0  # ❌ پاداش دعوت حذف شد
+REFERRAL_AMOUNT = 0
 COMMISSION_PERCENT = 10
 
 # ======================== وضعیت‌ها ========================
@@ -173,10 +173,8 @@ def main_keyboard():
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("🚀 اقتصادی", callback_data="cat_economic"))
-    markup.add(types.InlineKeyboardButton("🎮 گیمینگ", callback_data="cat_gaming"))
-    markup.add(types.InlineKeyboardButton("👑 VIP", callback_data="cat_vip"))
-    markup.add(types.InlineKeyboardButton("🌍 جهانی", callback_data="cat_global"))
-    markup.add(types.InlineKeyboardButton("💎 ناسا", callback_data="cat_nasa"))
+    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 خانواده", callback_data="cat_family"))
+    markup.add(types.InlineKeyboardButton("⚡ پرسرعت", callback_data="cat_speed"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_main"))
     return markup
 
@@ -187,45 +185,18 @@ def economic_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-def gaming_menu():
+def family_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("💎 ۱۰ گیگ الماس - ۲۰۰,۰۰۰", callback_data="buy_gaming10_200000"))
-    markup.add(types.InlineKeyboardButton("💎 ۲۰ گیگ الماس - ۳۹۰,۰۰۰", callback_data="buy_gaming20_390000"))
-    markup.add(types.InlineKeyboardButton("💎 ۳۰ گیگ الماس - ۵۵۰,۰۰۰", callback_data="buy_gaming30_550000"))
-    markup.add(types.InlineKeyboardButton("💎 ۵۰ گیگ الماس - ۷۵۰,۰۰۰", callback_data="buy_gaming50_750000"))
-    markup.add(types.InlineKeyboardButton("💎 ۱۰۰ گیگ الماس - ۱,۲۵۰,۰۰۰", callback_data="buy_gaming100_1250000"))
-    markup.add(types.InlineKeyboardButton("💎 ۱۵۰ گیگ الماس - ۱,۹۸۰,۰۰۰", callback_data="buy_gaming150_1980000"))
-    markup.add(types.InlineKeyboardButton("💎 ۲۰۰ گیگ الماس - ۲,۴۶۰,۰۰۰", callback_data="buy_gaming200_2460000"))
+    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 ۲ کاربر - نامحدود ۲۳۵,۰۰۰", callback_data="buy_family2_235000"))
+    markup.add(types.InlineKeyboardButton("👨‍👩‍👧‍👦 ۴ کاربر - نامحدود ۳۴۶,۰۰۰", callback_data="buy_family4_346000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-def vip_menu():
+def speed_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("👑 ۲۰ گیگ شاهانه - ۵۵۰,۰۰۰", callback_data="buy_vip20_550000"))
-    markup.add(types.InlineKeyboardButton("👑 ۳۰ گیگ شاهانه - ۷۵۰,۰۰۰", callback_data="buy_vip30_750000"))
-    markup.add(types.InlineKeyboardButton("👑 ۵۰ گیگ شاهانه - ۱,۱۰۰,۰۰۰", callback_data="buy_vip50_1100000"))
-    markup.add(types.InlineKeyboardButton("👑 ۱۰۰ گیگ شاهانه - ۱,۸۰۰,۰۰۰", callback_data="buy_vip100_1800000"))
-    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
-    return markup
-
-def global_menu():
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("🌍 ۱۰ گیگ مولتی - ۱۸۰,۰۰۰", callback_data="buy_global10_180000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۲۰ گیگ مولتی - ۳۰۰,۰۰۰", callback_data="buy_global20_300000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۳۰ گیگ مولتی - ۴۵۰,۰۰۰", callback_data="buy_global30_450000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۵۰ گیگ مولتی - ۶۵۰,۰۰۰", callback_data="buy_global50_650000"))
-    markup.add(types.InlineKeyboardButton("🌍 ۱۰۰ گیگ مولتی - ۱,۰۰۰,۰۰۰", callback_data="buy_global100_1000000"))
-    markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
-    return markup
-
-def nasa_menu():
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - تک ۵۹۰,۰۰۰", callback_data="buy_nasa100_590000"))
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - ۲ کاربره ۷۹۰,۰۰۰", callback_data="buy_nasa100_790000"))
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - ۳ کاربره ۹۹۰,۰۰۰", callback_data="buy_nasa100_990000"))
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - ۳ ماهه تک ۱,۴۹۰,۰۰۰", callback_data="buy_nasa100_1490000"))
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - ۳ ماهه ۲ کاربره ۱,۹۹۰,۰۰۰", callback_data="buy_nasa100_1990000"))
-    markup.add(types.InlineKeyboardButton("⭐ ۱۰۰ گیگ - ۳ ماهه ۳ کاربره ۲,۴۹۰,۰۰۰", callback_data="buy_nasa100_2490000"))
+    markup.add(types.InlineKeyboardButton("⚡ ۲۰ گیگ - ۱۴۰,۰۰۰", callback_data="buy_speed20_140000"))
+    markup.add(types.InlineKeyboardButton("⚡ ۳۰ گیگ - ۲۰۰,۰۰۰", callback_data="buy_speed30_200000"))
+    markup.add(types.InlineKeyboardButton("⚡ ۵۰ گیگ - ۳۱۵,۰۰۰", callback_data="buy_speed50_315000"))
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
@@ -333,7 +304,6 @@ def start(message):
     name = message.from_user.first_name
     init_user(user_id, message.from_user.username or "")
     
-    # ======================== سیستم رفرال (بدون پاداش دعوت) ========================
     if len(message.text.split()) > 1:
         try:
             ref_param = message.text.split()[1]
@@ -354,7 +324,6 @@ def start(message):
                 if inviter_id:
                     users[str(user_id)]['invited_by'] = inviter_id
                     users[inviter_id]['referrals'] = users[inviter_id].get('referrals', 0) + 1
-                    # ❌ پاداش دعوت حذف شد (REFERRAL_AMOUNT = 0)
                     save_users(users)
                     try:
                         bot.send_message(
@@ -523,17 +492,13 @@ def handle_category(call):
     category = call.data.replace("cat_", "")
     menus = {
         "economic": economic_menu,
-        "gaming": gaming_menu,
-        "vip": vip_menu,
-        "global": global_menu,
-        "nasa": nasa_menu
+        "family": family_menu,
+        "speed": speed_menu
     }
     titles = {
         "economic": "🚀 اقتصادی",
-        "gaming": "🎮 گیمینگ",
-        "vip": "👑 VIP",
-        "global": "🌍 جهانی",
-        "nasa": "💎 ناسا"
+        "family": "👨‍👩‍👧‍👦 خانواده (نامحدود)",
+        "speed": "⚡ پرسرعت"
     }
     try:
         bot.edit_message_text(f"{titles[category]}\n\nلطفاً بسته مورد نظر را انتخاب کنید:", call.message.chat.id, call.message.message_id, reply_markup=menus[category](), parse_mode='Markdown')
@@ -593,7 +558,6 @@ def process_purchase(user_id, package, price, call=None, discount_code=None):
     if credit >= price:
         users[user_id]['credit'] = credit - price
         
-        # ======================== سیستم کمیسیون (۱۰٪) ========================
         inviter_id = users[user_id].get('invited_by')
         if inviter_id and inviter_id in users:
             commission = int(original_price * COMMISSION_PERCENT / 100)
@@ -612,7 +576,6 @@ def process_purchase(user_id, package, price, call=None, discount_code=None):
                     )
                 except:
                     pass
-        # ======================================================
         
         save_users(users)
         username = users[user_id].get('username', 'بدون نام')
@@ -876,7 +839,7 @@ if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
-    print("✅ کانفیگ جدید مولتی‌لوکیشن ۱۰۰ گیگ ۲۴۹,۰۰۰ تومان اضافه شد!")
+    print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
