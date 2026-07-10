@@ -38,8 +38,13 @@ wallet_enabled = True
 discount_enabled = True
 discounts = {}
 
-# ======================== بخش کانفیگ تست (دستی) ========================
-last_free_config = None  # اینجا کانفیگ تست ذخیره میشه
+# ======================== بخش کانفیگ تست (با توضیحات) ========================
+free_config_data = {
+    'config': None,      # لینک کانفیگ
+    'description': None, # توضیحات
+    'date': None,        # تاریخ تنظیم
+    'set_by': None       # کسی که تنظیم کرده
+}
 
 # ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
@@ -283,36 +288,80 @@ def wallet_on(m):
     wallet_enabled = True
     bot.reply_to(m, "✅ شارژ کیف پول فعال شد.")
 
-# ======================== دستورات ادمین (کانفیگ تست) ========================
+# ======================== دستورات ادمین (کانفیگ تست با توضیحات) ========================
 @bot.message_handler(commands=['setfree'])
 def set_free_config(m):
-    """دستور ادمین برای تنظیم کانفیگ تست (روی پیام ریپلی کن)"""
+    """تنظیم کانفیگ تست با توضیحات - روی پیام ریپلی کن"""
     if str(m.from_user.id) != ADMIN_ID:
         bot.reply_to(m, "⛔ فقط ادمین!")
         return
     
-    global last_free_config
+    global free_config_data
     
     if m.reply_to_message:
         # دریافت متن از پیام ریپلی شده
-        config_text = m.reply_to_message.text or m.reply_to_message.caption
-        if config_text:
-            last_free_config = config_text
-            bot.reply_to(m, "✅ **کانفیگ تست با موفقیت ذخیره شد!**\n\n" + config_text[:100] + "...")
-            
-            # ارسال به کانال لاگ
-            try:
-                bot.send_message(
-                    ADMIN_ID,
-                    f"✅ کانفیگ تست جدید:\n\n{config_text[:200]}"
-                )
-            except:
-                pass
-        else:
+        full_text = m.reply_to_message.text or m.reply_to_message.caption or ''
+        
+        if not full_text:
             bot.reply_to(m, "❌ پیام انتخابی متنی نیست!")
+            return
+        
+        # جداسازی توضیحات و کانفیگ
+        lines = full_text.strip().split('\n')
+        
+        # پیدا کردن لینک کانفیگ
+        config_link = None
+        description_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if any(x in line for x in ['vless://', 'vmess://', 'trojan://', 'ss://']):
+                config_link = line
+            else:
+                if line and not line.startswith('#'):
+                    description_lines.append(line)
+        
+        if not config_link:
+            bot.reply_to(m, "❌ **لینک کانفیگ پیدا نشد!**\n\n"
+                           "لطفاً پیامت باید شامل یکی از اینا باشه:\n"
+                           "`vless://` , `vmess://` , `trojan://` , `ss://`")
+            return
+        
+        # ذخیره اطلاعات
+        free_config_data['config'] = config_link
+        free_config_data['description'] = '\n'.join(description_lines) if description_lines else 'کانفیگ تست رایگان'
+        free_config_data['date'] = str(datetime.now())
+        free_config_data['set_by'] = m.from_user.username or m.from_user.first_name
+        
+        bot.reply_to(
+            m,
+            f"✅ **کانفیگ تست با موفقیت ذخیره شد!**\n\n"
+            f"📝 توضیحات: {free_config_data['description'][:100]}...\n"
+            f"🔗 کانفیگ: `{config_link[:50]}...`\n"
+            f"📅 تاریخ: {free_config_data['date']}",
+            parse_mode='Markdown'
+        )
+        
+        # لاگ به ادمین
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"✅ کانفیگ تست جدید:\n\n"
+                f"📝 توضیحات: {free_config_data['description']}\n\n"
+                f"🔗 کانفیگ: {config_link}\n\n"
+                f"📅 تنظیم شده توسط: @{free_config_data['set_by']}"
+            )
+        except:
+            pass
     else:
-        bot.reply_to(m, "❌ **روی یک پیام حاوی کانفیگ ریپلی کن!**\n\n"
-                       "مثال: پیام کانفیگ رو فوروارد کن و روی اون /setfree رو بفرست.")
+        bot.reply_to(
+            m,
+            "❌ **روی یک پیام حاوی کانفیگ ریپلی کن!**\n\n"
+            "📝 **فرمت پیام:**\n"
+            "توضیحات کانفیگ تست\n"
+            "vless://your-config-link-here\n\n"
+            "🔄 پیام کانفیگ رو فوروارد کن و روی اون `/setfree` رو بفرست."
+        )
 
 @bot.message_handler(commands=['showfree'])
 def show_free_config(m):
@@ -320,9 +369,18 @@ def show_free_config(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
     
-    global last_free_config
-    if last_free_config:
-        bot.reply_to(m, f"📡 **کانفیگ تست فعلی:**\n\n`{last_free_config}`", parse_mode='Markdown')
+    if free_config_data['config']:
+        text = f"""📡 **کانفیگ تست فعلی:**
+
+📝 توضیحات:
+{free_config_data['description']}
+
+🔗 لینک کانفیگ:
+`{free_config_data['config']}`
+
+📅 تاریخ تنظیم: {free_config_data['date']}
+👤 تنظیم شده توسط: @{free_config_data['set_by']}"""
+        bot.reply_to(m, text, parse_mode='Markdown')
     else:
         bot.reply_to(m, "❌ هیچ کانفیگ تستی تنظیم نشده!")
 
@@ -332,103 +390,42 @@ def del_free_config(m):
     if str(m.from_user.id) != ADMIN_ID:
         return
     
-    global last_free_config
-    last_free_config = None
+    global free_config_data
+    free_config_data = {
+        'config': None,
+        'description': None,
+        'date': None,
+        'set_by': None
+    }
     bot.reply_to(m, "✅ کانفیگ تست حذف شد!")
-
-# ======================== دستورات اصلی ========================
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.from_user.id
-    if is_banned(user_id):
-        bot.reply_to(message, "⛔ شما مسدود شده اید!")
-        return
-    
-    if not is_member(user_id):
-        markup = types.InlineKeyboardMarkup()
-        markup.add(
-            types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
-            types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
-        )
-        bot.reply_to(message, 
-            f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی ✅ تایید عضویت کلیک کنید.",
-            reply_markup=markup,
-            parse_mode='Markdown'
-        )
-        return
-    
-    name = message.from_user.first_name
-    init_user(user_id, message.from_user.username or "")
-    
-    if len(message.text.split()) > 1:
-        try:
-            ref_param = message.text.split()[1]
-            if users.get(str(user_id), {}).get('invited_by') is None:
-                inviter_id = None
-                for uid, data in users.items():
-                    if data.get('referral_code', '').upper() == ref_param.upper():
-                        if uid != str(user_id):
-                            inviter_id = uid
-                            break
-                if inviter_id is None:
-                    try:
-                        ref_int = int(ref_param)
-                        if str(ref_int) in users and str(ref_int) != str(user_id):
-                            inviter_id = str(ref_int)
-                    except:
-                        pass
-                if inviter_id:
-                    users[str(user_id)]['invited_by'] = inviter_id
-                    users[inviter_id]['referrals'] = users[inviter_id].get('referrals', 0) + 1
-                    save_users(users)
-                    try:
-                        bot.send_message(
-                            int(inviter_id),
-                            f"🎉 یک کاربر جدید با کد شما عضو شد!\n"
-                            f"👤 {message.from_user.first_name}\n"
-                            f"🆔 {user_id}\n"
-                            f"💎 از خرید بعدی ۱۰٪ کمیسیون دریافت میکنی!"
-                        )
-                    except:
-                        pass
-                    bot.reply_to(
-                        message,
-                        f"✅ شما با کد دعوت `{ref_param}` عضو شدید!"
-                    )
-                else:
-                    bot.reply_to(
-                        message,
-                        f"⚠️ کد دعوت `{ref_param}` معتبر نیست!"
-                    )
-        except:
-            pass
-    
-    bot.reply_to(
-        message,
-        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n"
-        f"⚡ اینترنت آزاد و بدون محدودیت\n"
-        f"🛡️ امنیت کامل و سرعت بالا\n"
-        f"✨ از منوی زیر یکی رو انتخاب کن:", 
-        reply_markup=main_keyboard(), 
-        parse_mode='Markdown'
-    )
 
 # ======================== دکمه کانفیگ تست ========================
 @bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
 @membership_required
 def send_free_config(m):
-    global last_free_config
-    
-    if last_free_config:
+    if free_config_data['config']:
+        # تاریخ تنظیم رو فرمت می‌کنیم
+        try:
+            date_obj = datetime.strptime(free_config_data['date'], '%Y-%m-%d %H:%M:%S.%f')
+            date_str = date_obj.strftime('%Y/%m/%d - %H:%M')
+        except:
+            date_str = free_config_data['date'] or 'نامشخص'
+        
         text = f"""🎁 **کانفیگ تست رایگان**
 
-🔗 آخرین کانفیگ تست:
+📝 **توضیحات:**
+{free_config_data['description']}
+
+🔗 **لینک کانفیگ:**
+        
+📅 تاریخ بروزرسانی: {date_str}
 
 ⚠️ **توجه:**
 • این کانفیگ تستی است و ممکن است هر لحظه قطع شود.
 • برای کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
 
 🆔 پشتیبانی: @hegzosupport"""
+        
         bot.send_message(m.chat.id, text, parse_mode='Markdown')
         
         # لاگ برای ادمین
@@ -932,7 +929,7 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش کانفیگ تست با روش دستی فعال شد!")
+    print("✅ بخش کانفیگ تست با توضیحات فعال شد!")
     print("✅ برای تنظیم کانفیگ تست از دستور /setfree استفاده کن!")
     bot.delete_webhook()
     time.sleep(2)
