@@ -170,12 +170,12 @@ def main_keyboard():
     return markup
 
 # ======================== بخش کانفیگ تست/رایگان ========================
-FREE_CHANNEL = '@hegzoconfigfree'  # کانالی که کدها توش هست
+FREE_CHANNEL_ID = -1003852322019  # آیدی عددی کانال تست
 
 def get_latest_free_config():
-    """دریافت آخرین کانفیگ از کانال"""
+    """دریافت آخرین کانفیگ از کانال با آیدی عددی"""
     try:
-        messages = bot.get_chat_history(FREE_CHANNEL, limit=3)
+        messages = bot.get_chat_history(FREE_CHANNEL_ID, limit=5)
         for msg in messages:
             text = msg.text or msg.caption or ''
             if any(x in text for x in ['vless://', 'vmess://', 'trojan://', 'ss://']):
@@ -202,6 +202,7 @@ def send_free_config(m):
             pass
         
         text = f"""🎁 **کانفیگ تست رایگان**
+
 
 🔗 آخرین کانفیگ تست:
         
@@ -906,7 +907,7 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش کانفیگ تست از کانال @hegzoconfigfree فعال شد!")
+    print("✅ بخش کانفیگ تست با آیدی عددی کانال فعال شد!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
