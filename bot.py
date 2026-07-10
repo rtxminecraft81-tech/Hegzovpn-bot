@@ -38,9 +38,9 @@ wallet_enabled = True
 discount_enabled = True
 discounts = {}
 
-# ======================== بخش کانفیگ تست (با توضیحات) ========================
+# ======================== بخش کانفیگ تست (با لینک نامحدود) ========================
 free_config_data = {
-    'config': None,
+    'config': None,      # لینک کامل - بدون محدودیت کاراکتر
     'description': None,
     'date': None,
     'set_by': None
@@ -288,7 +288,7 @@ def wallet_on(m):
     wallet_enabled = True
     bot.reply_to(m, "✅ شارژ کیف پول فعال شد.")
 
-# ======================== دستورات ادمین (کانفیگ تست) ========================
+# ======================== دستورات ادمین (کانفیگ تست با لینک نامحدود) ========================
 @bot.message_handler(commands=['setfree'])
 def set_free_config(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -304,6 +304,7 @@ def set_free_config(m):
             bot.reply_to(m, "❌ پیام انتخابی متنی نیست!")
             return
         
+        # جداسازی توضیحات و لینک
         lines = full_text.strip().split('\n')
         
         config_link = None
@@ -311,7 +312,8 @@ def set_free_config(m):
         
         for line in lines:
             line = line.strip()
-            if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org', 't.me/']):
+            # تشخیص لینک (هر چیزی که شبیه لینک باشه)
+            if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org', 't.me/', 'raw.githubusercontent.com', 'github.com']):
                 config_link = line
             else:
                 if line and not line.startswith('#'):
@@ -321,16 +323,22 @@ def set_free_config(m):
             bot.reply_to(m, "❌ **لینک پیدا نشد!**\n\nلطفاً پیامت باید شامل یک لینک باشه.")
             return
         
-        free_config_data['config'] = config_link
+        # ذخیره لینک کامل (بدون محدودیت کاراکتر)
+        free_config_data['config'] = config_link  # لینک کامل
         free_config_data['description'] = '\n'.join(description_lines) if description_lines else 'لینک تست'
         free_config_data['date'] = str(datetime.now())
         free_config_data['set_by'] = m.from_user.username or m.from_user.first_name
+        
+        # نمایش فقط ۱۰۰ کاراکتر اول برای تایید
+        preview = config_link[:100] + '...' if len(config_link) > 100 else config_link
         
         bot.reply_to(
             m,
             f"✅ **لینک تست با موفقیت ذخیره شد!**\n\n"
             f"📝 توضیحات: {free_config_data['description'][:100]}...\n"
-            f"🔗 لینک: `{config_link[:50]}...`",
+            f"🔗 لینک: `{preview}`\n"
+            f"📏 طول لینک: {len(config_link)} کاراکتر\n"
+            f"📅 تاریخ: {free_config_data['date']}",
             parse_mode='Markdown'
         )
     else:
@@ -339,7 +347,8 @@ def set_free_config(m):
             "❌ **روی یک پیام حاوی لینک ریپلی کن!**\n\n"
             "📝 **فرمت پیام:**\n"
             "توضیحات لینک تست\n"
-            "https://example.com"
+            "https://example.com/very-long-config-link\n\n"
+            "🔄 پیام رو فوروارد کن و روی اون `/setfree` رو بفرست."
         )
 
 @bot.message_handler(commands=['showfree'])
@@ -353,10 +362,12 @@ def show_free_config(m):
 📝 توضیحات:
 {free_config_data['description']}
 
-🔗 لینک:
+🔗 لینک کامل:
 `{free_config_data['config']}`
 
-📅 تاریخ تنظیم: {free_config_data['date']}"""
+📏 طول لینک: {len(free_config_data['config'])} کاراکتر
+📅 تاریخ تنظیم: {free_config_data['date']}
+👤 تنظیم شده توسط: @{free_config_data['set_by']}"""
         bot.reply_to(m, text, parse_mode='Markdown')
     else:
         bot.reply_to(m, "❌ هیچ لینک تستی تنظیم نشده!")
@@ -384,10 +395,8 @@ def start(message):
         bot.reply_to(message, "⛔ شما مسدود شده اید!")
         return
     
-    # ثبت نام کاربر
     init_user(user_id, message.from_user.username or "")
     
-    # اگر کاربر عضو کانال نیست
     if not is_member(user_id):
         markup = types.InlineKeyboardMarkup()
         markup.add(
@@ -402,7 +411,6 @@ def start(message):
         )
         return
     
-    # اگر همه چیز اوکی بود، خوش‌آمدگویی
     name = message.from_user.first_name
     bot.reply_to(
         message,
@@ -427,22 +435,26 @@ def show_buy(m):
 @bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
 @membership_required
 def send_free_config(m):
-    if free_config_data['config']:
+    global free_config_data
+    
+    if free_config_data.get('config'):
         try:
             date_obj = datetime.strptime(free_config_data['date'], '%Y-%m-%d %H:%M:%S.%f')
             date_str = date_obj.strftime('%Y/%m/%d - %H:%M')
         except:
-            date_str = free_config_data['date'] or 'نامشخص'
+            date_str = free_config_data.get('date', 'نامشخص')
         
+        # ارسال لینک کامل بدون هیچ گونه کوتاه‌سازی
         text = f"""🎁 **لینک تست رایگان**
 
 📝 **توضیحات:**
-{free_config_data['description']}
+{free_config_data.get('description', 'بدون توضیحات')}
 
-🔗 **لینک:**
+🔗 **لینک کامل:**
 {free_config_data['config']}
 
 📅 تاریخ بروزرسانی: {date_str}
+📏 طول لینک: {len(free_config_data['config'])} کاراکتر
 
 ⚠️ **توجه:**
 • این لینک تستی است و ممکن است هر لحظه تغییر کند.
@@ -942,8 +954,8 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش لینک تست با توضیحات فعال شد!")
-    print("✅ هر نوع لینکی قابل قبول است!")
+    print("✅ بخش لینک تست با پشتیبانی از لینک‌های نامحدود فعال شد!")
+    print("✅ هر نوع لینکی با هر طولی قابل قبول است!")
     print("✅ دستور /start درست شد!")
     bot.delete_webhook()
     time.sleep(2)
