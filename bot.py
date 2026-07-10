@@ -38,6 +38,9 @@ wallet_enabled = True
 discount_enabled = True
 discounts = {}
 
+# ======================== بخش کانفیگ تست (دستی) ========================
+last_free_config = None  # اینجا کانفیگ تست ذخیره میشه
+
 # ======================== اتصال به Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
@@ -169,73 +172,6 @@ def main_keyboard():
     markup.add("🆘 پشتیبانی", "🏠 منوی اصلی")
     return markup
 
-# ======================== بخش کانفیگ تست/رایگان ========================
-FREE_CHANNEL_ID = -1003852322019  # آیدی عددی کانال تست
-
-def get_latest_free_config():
-    """دریافت آخرین کانفیگ از کانال با آیدی عددی"""
-    try:
-        messages = bot.get_chat_history(FREE_CHANNEL_ID, limit=5)
-        for msg in messages:
-            text = msg.text or msg.caption or ''
-            if any(x in text for x in ['vless://', 'vmess://', 'trojan://', 'ss://']):
-                return text
-        return None
-    except Exception as e:
-        print(f"❌ خطا در دریافت کانفیگ تست: {e}")
-        return None
-
-@bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
-@membership_required
-def send_free_config(m):
-    user_id = m.from_user.id
-    chat_id = m.chat.id
-    
-    waiting_msg = bot.reply_to(m, "⏳ در حال دریافت آخرین کانفیگ تست...")
-    
-    config = get_latest_free_config()
-    
-    if config:
-        try:
-            bot.delete_message(chat_id, waiting_msg.message_id)
-        except:
-            pass
-        
-        text = f"""🎁 **کانفیگ تست رایگان**
-
-
-🔗 آخرین کانفیگ تست:
-        
-⚠️ **توجه:**
-• این کانفیگ تستی است و ممکن است هر لحظه قطع شود.
-• برای کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
-
-🆔 پشتیبانی: @hegzosupport"""
-        
-        bot.send_message(chat_id, text, parse_mode='Markdown')
-        
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                f"📡 درخواست کانفیگ تست\n"
-                f"👤 @{m.from_user.username or 'بدون نام'}\n"
-                f"🆔 {user_id}"
-            )
-        except:
-            pass
-    else:
-        try:
-            bot.delete_message(chat_id, waiting_msg.message_id)
-        except:
-            pass
-        bot.reply_to(
-            m,
-            "❌ **هیچ کانفیگ تستی در دسترس نیست!**\n\n"
-            "📢 لطفاً بعداً دوباره تلاش کن.\n"
-            "🆔 پشتیبانی: @hegzosupport",
-            parse_mode='Markdown'
-        )
-
 # ======================== منوهای خرید ========================
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -347,6 +283,59 @@ def wallet_on(m):
     wallet_enabled = True
     bot.reply_to(m, "✅ شارژ کیف پول فعال شد.")
 
+# ======================== دستورات ادمین (کانفیگ تست) ========================
+@bot.message_handler(commands=['setfree'])
+def set_free_config(m):
+    """دستور ادمین برای تنظیم کانفیگ تست (روی پیام ریپلی کن)"""
+    if str(m.from_user.id) != ADMIN_ID:
+        bot.reply_to(m, "⛔ فقط ادمین!")
+        return
+    
+    global last_free_config
+    
+    if m.reply_to_message:
+        # دریافت متن از پیام ریپلی شده
+        config_text = m.reply_to_message.text or m.reply_to_message.caption
+        if config_text:
+            last_free_config = config_text
+            bot.reply_to(m, "✅ **کانفیگ تست با موفقیت ذخیره شد!**\n\n" + config_text[:100] + "...")
+            
+            # ارسال به کانال لاگ
+            try:
+                bot.send_message(
+                    ADMIN_ID,
+                    f"✅ کانفیگ تست جدید:\n\n{config_text[:200]}"
+                )
+            except:
+                pass
+        else:
+            bot.reply_to(m, "❌ پیام انتخابی متنی نیست!")
+    else:
+        bot.reply_to(m, "❌ **روی یک پیام حاوی کانفیگ ریپلی کن!**\n\n"
+                       "مثال: پیام کانفیگ رو فوروارد کن و روی اون /setfree رو بفرست.")
+
+@bot.message_handler(commands=['showfree'])
+def show_free_config(m):
+    """نمایش کانفیگ تست فعلی (فقط ادمین)"""
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    
+    global last_free_config
+    if last_free_config:
+        bot.reply_to(m, f"📡 **کانفیگ تست فعلی:**\n\n`{last_free_config}`", parse_mode='Markdown')
+    else:
+        bot.reply_to(m, "❌ هیچ کانفیگ تستی تنظیم نشده!")
+
+@bot.message_handler(commands=['delfree'])
+def del_free_config(m):
+    """حذف کانفیگ تست (فقط ادمین)"""
+    if str(m.from_user.id) != ADMIN_ID:
+        return
+    
+    global last_free_config
+    last_free_config = None
+    bot.reply_to(m, "✅ کانفیگ تست حذف شد!")
+
 # ======================== دستورات اصلی ========================
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -423,6 +412,42 @@ def start(message):
         reply_markup=main_keyboard(), 
         parse_mode='Markdown'
     )
+
+# ======================== دکمه کانفیگ تست ========================
+@bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
+@membership_required
+def send_free_config(m):
+    global last_free_config
+    
+    if last_free_config:
+        text = f"""🎁 **کانفیگ تست رایگان**
+
+🔗 آخرین کانفیگ تست:
+
+⚠️ **توجه:**
+• این کانفیگ تستی است و ممکن است هر لحظه قطع شود.
+• برای کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
+
+🆔 پشتیبانی: @hegzosupport"""
+        bot.send_message(m.chat.id, text, parse_mode='Markdown')
+        
+        # لاگ برای ادمین
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"📡 درخواست کانفیگ تست\n"
+                f"👤 @{m.from_user.username or 'بدون نام'}\n"
+                f"🆔 {m.from_user.id}"
+            )
+        except:
+            pass
+    else:
+        bot.reply_to(
+            m,
+            "❌ **هیچ کانفیگ تستی تنظیم نشده!**\n\n"
+            "📢 با ادمین تماس بگیرید: @hegzosupport",
+            parse_mode='Markdown'
+        )
 
 @bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
 @membership_required
@@ -907,7 +932,8 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش کانفیگ تست با آیدی عددی کانال فعال شد!")
+    print("✅ بخش کانفیگ تست با روش دستی فعال شد!")
+    print("✅ برای تنظیم کانفیگ تست از دستور /setfree استفاده کن!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
