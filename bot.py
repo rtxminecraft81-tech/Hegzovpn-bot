@@ -165,9 +165,75 @@ def main_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add("💳 شارژ کیف پول", "🛒 خرید کانفیگ")
     markup.add("📁 کانفیگ‌های من", "👤 حساب کاربری")
-    markup.add("👥 دعوت از دوستان", "🆘 پشتیبانی")
-    markup.add("🏠 منوی اصلی")
+    markup.add("🎁 کانفیگ تست", "👥 دعوت از دوستان")
+    markup.add("🆘 پشتیبانی", "🏠 منوی اصلی")
     return markup
+
+# ======================== بخش کانفیگ تست/رایگان ========================
+FREE_CHANNEL = '@hegzoconfigfree'  # کانالی که کدها توش هست
+
+def get_latest_free_config():
+    """دریافت آخرین کانفیگ از کانال"""
+    try:
+        messages = bot.get_chat_history(FREE_CHANNEL, limit=3)
+        for msg in messages:
+            text = msg.text or msg.caption or ''
+            if any(x in text for x in ['vless://', 'vmess://', 'trojan://', 'ss://']):
+                return text
+        return None
+    except Exception as e:
+        print(f"❌ خطا در دریافت کانفیگ تست: {e}")
+        return None
+
+@bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
+@membership_required
+def send_free_config(m):
+    user_id = m.from_user.id
+    chat_id = m.chat.id
+    
+    waiting_msg = bot.reply_to(m, "⏳ در حال دریافت آخرین کانفیگ تست...")
+    
+    config = get_latest_free_config()
+    
+    if config:
+        try:
+            bot.delete_message(chat_id, waiting_msg.message_id)
+        except:
+            pass
+        
+        text = f"""🎁 **کانفیگ تست رایگان**
+
+🔗 آخرین کانفیگ تست:
+        
+⚠️ **توجه:**
+• این کانفیگ تستی است و ممکن است هر لحظه قطع شود.
+• برای کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
+
+🆔 پشتیبانی: @hegzosupport"""
+        
+        bot.send_message(chat_id, text, parse_mode='Markdown')
+        
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"📡 درخواست کانفیگ تست\n"
+                f"👤 @{m.from_user.username or 'بدون نام'}\n"
+                f"🆔 {user_id}"
+            )
+        except:
+            pass
+    else:
+        try:
+            bot.delete_message(chat_id, waiting_msg.message_id)
+        except:
+            pass
+        bot.reply_to(
+            m,
+            "❌ **هیچ کانفیگ تستی در دسترس نیست!**\n\n"
+            "📢 لطفاً بعداً دوباره تلاش کن.\n"
+            "🆔 پشتیبانی: @hegzosupport",
+            parse_mode='Markdown'
+        )
 
 # ======================== منوهای خرید ========================
 def buy_menu():
@@ -840,6 +906,7 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
+    print("✅ بخش کانفیگ تست از کانال @hegzoconfigfree فعال شد!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
