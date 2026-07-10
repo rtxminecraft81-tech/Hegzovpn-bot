@@ -40,7 +40,7 @@ discounts = {}
 
 # ======================== بخش کانفیگ تست (با توضیحات) ========================
 free_config_data = {
-    'config': None,      # لینک کانفیگ
+    'config': None,      # لینک کانفیگ یا هر لینک دیگه
     'description': None, # توضیحات
     'date': None,        # تاریخ تنظیم
     'set_by': None       # کسی که تنظیم کرده
@@ -288,7 +288,7 @@ def wallet_on(m):
     wallet_enabled = True
     bot.reply_to(m, "✅ شارژ کیف پول فعال شد.")
 
-# ======================== دستورات ادمین (کانفیگ تست با توضیحات) ========================
+# ======================== دستورات ادمین (کانفیگ تست) ========================
 @bot.message_handler(commands=['setfree'])
 def set_free_config(m):
     """تنظیم کانفیگ تست با توضیحات - روی پیام ریپلی کن"""
@@ -299,56 +299,53 @@ def set_free_config(m):
     global free_config_data
     
     if m.reply_to_message:
-        # دریافت متن از پیام ریپلی شده
         full_text = m.reply_to_message.text or m.reply_to_message.caption or ''
         
         if not full_text:
             bot.reply_to(m, "❌ پیام انتخابی متنی نیست!")
             return
         
-        # جداسازی توضیحات و کانفیگ
         lines = full_text.strip().split('\n')
         
-        # پیدا کردن لینک کانفیگ
+        # پیدا کردن لینک (هر لینکی رو قبول کن)
         config_link = None
         description_lines = []
         
         for line in lines:
             line = line.strip()
-            if any(x in line for x in ['vless://', 'vmess://', 'trojan://', 'ss://']):
+            # هر لینکی رو قبول کن (http, https, vless, vmess, trojan, ss, و حتی لینک‌های معمولی)
+            if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org', 't.me/']):
                 config_link = line
             else:
                 if line and not line.startswith('#'):
                     description_lines.append(line)
         
         if not config_link:
-            bot.reply_to(m, "❌ **لینک کانفیگ پیدا نشد!**\n\n"
-                           "لطفاً پیامت باید شامل یکی از اینا باشه:\n"
-                           "`vless://` , `vmess://` , `trojan://` , `ss://`")
+            bot.reply_to(m, "❌ **لینک پیدا نشد!**\n\n"
+                           "لطفاً پیامت باید شامل یک لینک باشه:\n"
+                           "مثلاً: `https://example.com` یا `vless://...`")
             return
         
-        # ذخیره اطلاعات
         free_config_data['config'] = config_link
-        free_config_data['description'] = '\n'.join(description_lines) if description_lines else 'کانفیگ تست رایگان'
+        free_config_data['description'] = '\n'.join(description_lines) if description_lines else 'لینک تست'
         free_config_data['date'] = str(datetime.now())
         free_config_data['set_by'] = m.from_user.username or m.from_user.first_name
         
         bot.reply_to(
             m,
-            f"✅ **کانفیگ تست با موفقیت ذخیره شد!**\n\n"
+            f"✅ **لینک تست با موفقیت ذخیره شد!**\n\n"
             f"📝 توضیحات: {free_config_data['description'][:100]}...\n"
-            f"🔗 کانفیگ: `{config_link[:50]}...`\n"
+            f"🔗 لینک: `{config_link[:50]}...`\n"
             f"📅 تاریخ: {free_config_data['date']}",
             parse_mode='Markdown'
         )
         
-        # لاگ به ادمین
         try:
             bot.send_message(
                 ADMIN_ID,
-                f"✅ کانفیگ تست جدید:\n\n"
+                f"✅ لینک تست جدید:\n\n"
                 f"📝 توضیحات: {free_config_data['description']}\n\n"
-                f"🔗 کانفیگ: {config_link}\n\n"
+                f"🔗 لینک: {config_link}\n\n"
                 f"📅 تنظیم شده توسط: @{free_config_data['set_by']}"
             )
         except:
@@ -356,37 +353,35 @@ def set_free_config(m):
     else:
         bot.reply_to(
             m,
-            "❌ **روی یک پیام حاوی کانفیگ ریپلی کن!**\n\n"
+            "❌ **روی یک پیام حاوی لینک ریپلی کن!**\n\n"
             "📝 **فرمت پیام:**\n"
-            "توضیحات کانفیگ تست\n"
-            "vless://your-config-link-here\n\n"
-            "🔄 پیام کانفیگ رو فوروارد کن و روی اون `/setfree` رو بفرست."
+            "توضیحات لینک تست\n"
+            "https://example.com\n\n"
+            "🔄 پیام رو فوروارد کن و روی اون `/setfree` رو بفرست."
         )
 
 @bot.message_handler(commands=['showfree'])
 def show_free_config(m):
-    """نمایش کانفیگ تست فعلی (فقط ادمین)"""
     if str(m.from_user.id) != ADMIN_ID:
         return
     
     if free_config_data['config']:
-        text = f"""📡 **کانفیگ تست فعلی:**
+        text = f"""📡 **لینک تست فعلی:**
 
 📝 توضیحات:
 {free_config_data['description']}
 
-🔗 لینک کانفیگ:
+🔗 لینک:
 `{free_config_data['config']}`
 
 📅 تاریخ تنظیم: {free_config_data['date']}
 👤 تنظیم شده توسط: @{free_config_data['set_by']}"""
         bot.reply_to(m, text, parse_mode='Markdown')
     else:
-        bot.reply_to(m, "❌ هیچ کانفیگ تستی تنظیم نشده!")
+        bot.reply_to(m, "❌ هیچ لینک تستی تنظیم نشده!")
 
 @bot.message_handler(commands=['delfree'])
 def del_free_config(m):
-    """حذف کانفیگ تست (فقط ادمین)"""
     if str(m.from_user.id) != ADMIN_ID:
         return
     
@@ -397,42 +392,41 @@ def del_free_config(m):
         'date': None,
         'set_by': None
     }
-    bot.reply_to(m, "✅ کانفیگ تست حذف شد!")
+    bot.reply_to(m, "✅ لینک تست حذف شد!")
 
 # ======================== دکمه کانفیگ تست ========================
 @bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
 @membership_required
 def send_free_config(m):
     if free_config_data['config']:
-        # تاریخ تنظیم رو فرمت می‌کنیم
         try:
             date_obj = datetime.strptime(free_config_data['date'], '%Y-%m-%d %H:%M:%S.%f')
             date_str = date_obj.strftime('%Y/%m/%d - %H:%M')
         except:
             date_str = free_config_data['date'] or 'نامشخص'
         
-        text = f"""🎁 **کانفیگ تست رایگان**
+        text = f"""🎁 **لینک تست رایگان**
 
 📝 **توضیحات:**
 {free_config_data['description']}
 
-🔗 **لینک کانفیگ:**
-        
+🔗 **لینک:**
+{free_config_data['config']}
+
 📅 تاریخ بروزرسانی: {date_str}
 
 ⚠️ **توجه:**
-• این کانفیگ تستی است و ممکن است هر لحظه قطع شود.
-• برای کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
+• این لینک تستی است و ممکن است هر لحظه تغییر کند.
+• برای دریافت کانفیگ پایدار از بخش 🛒 خرید کانفیگ استفاده کن.
 
 🆔 پشتیبانی: @hegzosupport"""
         
         bot.send_message(m.chat.id, text, parse_mode='Markdown')
         
-        # لاگ برای ادمین
         try:
             bot.send_message(
                 ADMIN_ID,
-                f"📡 درخواست کانفیگ تست\n"
+                f"📡 درخواست لینک تست\n"
                 f"👤 @{m.from_user.username or 'بدون نام'}\n"
                 f"🆔 {m.from_user.id}"
             )
@@ -441,7 +435,7 @@ def send_free_config(m):
     else:
         bot.reply_to(
             m,
-            "❌ **هیچ کانفیگ تستی تنظیم نشده!**\n\n"
+            "❌ **هیچ لینک تستی تنظیم نشده!**\n\n"
             "📢 با ادمین تماس بگیرید: @hegzosupport",
             parse_mode='Markdown'
         )
@@ -929,8 +923,9 @@ if __name__ == '__main__':
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش کانفیگ تست با توضیحات فعال شد!")
-    print("✅ برای تنظیم کانفیگ تست از دستور /setfree استفاده کن!")
+    print("✅ بخش لینک تست با توضیحات فعال شد!")
+    print("✅ هر نوع لینکی قابل قبول است!")
+    print("✅ دستور /start درست شد!")
     bot.delete_webhook()
     time.sleep(2)
     from threading import Thread
