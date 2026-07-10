@@ -40,10 +40,10 @@ discounts = {}
 
 # ======================== بخش کانفیگ تست (با توضیحات) ========================
 free_config_data = {
-    'config': None,      # لینک کانفیگ یا هر لینک دیگه
-    'description': None, # توضیحات
-    'date': None,        # تاریخ تنظیم
-    'set_by': None       # کسی که تنظیم کرده
+    'config': None,
+    'description': None,
+    'date': None,
+    'set_by': None
 }
 
 # ======================== اتصال به Supabase ========================
@@ -291,7 +291,6 @@ def wallet_on(m):
 # ======================== دستورات ادمین (کانفیگ تست) ========================
 @bot.message_handler(commands=['setfree'])
 def set_free_config(m):
-    """تنظیم کانفیگ تست با توضیحات - روی پیام ریپلی کن"""
     if str(m.from_user.id) != ADMIN_ID:
         bot.reply_to(m, "⛔ فقط ادمین!")
         return
@@ -307,13 +306,11 @@ def set_free_config(m):
         
         lines = full_text.strip().split('\n')
         
-        # پیدا کردن لینک (هر لینکی رو قبول کن)
         config_link = None
         description_lines = []
         
         for line in lines:
             line = line.strip()
-            # هر لینکی رو قبول کن (http, https, vless, vmess, trojan, ss, و حتی لینک‌های معمولی)
             if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org', 't.me/']):
                 config_link = line
             else:
@@ -321,9 +318,7 @@ def set_free_config(m):
                     description_lines.append(line)
         
         if not config_link:
-            bot.reply_to(m, "❌ **لینک پیدا نشد!**\n\n"
-                           "لطفاً پیامت باید شامل یک لینک باشه:\n"
-                           "مثلاً: `https://example.com` یا `vless://...`")
+            bot.reply_to(m, "❌ **لینک پیدا نشد!**\n\nلطفاً پیامت باید شامل یک لینک باشه.")
             return
         
         free_config_data['config'] = config_link
@@ -335,29 +330,16 @@ def set_free_config(m):
             m,
             f"✅ **لینک تست با موفقیت ذخیره شد!**\n\n"
             f"📝 توضیحات: {free_config_data['description'][:100]}...\n"
-            f"🔗 لینک: `{config_link[:50]}...`\n"
-            f"📅 تاریخ: {free_config_data['date']}",
+            f"🔗 لینک: `{config_link[:50]}...`",
             parse_mode='Markdown'
         )
-        
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                f"✅ لینک تست جدید:\n\n"
-                f"📝 توضیحات: {free_config_data['description']}\n\n"
-                f"🔗 لینک: {config_link}\n\n"
-                f"📅 تنظیم شده توسط: @{free_config_data['set_by']}"
-            )
-        except:
-            pass
     else:
         bot.reply_to(
             m,
             "❌ **روی یک پیام حاوی لینک ریپلی کن!**\n\n"
             "📝 **فرمت پیام:**\n"
             "توضیحات لینک تست\n"
-            "https://example.com\n\n"
-            "🔄 پیام رو فوروارد کن و روی اون `/setfree` رو بفرست."
+            "https://example.com"
         )
 
 @bot.message_handler(commands=['showfree'])
@@ -374,8 +356,7 @@ def show_free_config(m):
 🔗 لینک:
 `{free_config_data['config']}`
 
-📅 تاریخ تنظیم: {free_config_data['date']}
-👤 تنظیم شده توسط: @{free_config_data['set_by']}"""
+📅 تاریخ تنظیم: {free_config_data['date']}"""
         bot.reply_to(m, text, parse_mode='Markdown')
     else:
         bot.reply_to(m, "❌ هیچ لینک تستی تنظیم نشده!")
@@ -394,7 +375,55 @@ def del_free_config(m):
     }
     bot.reply_to(m, "✅ لینک تست حذف شد!")
 
-# ======================== دکمه کانفیگ تست ========================
+# ======================== دستورات اصلی ========================
+@bot.message_handler(commands=['start'])
+def start(message):
+    user_id = message.from_user.id
+    
+    if is_banned(user_id):
+        bot.reply_to(message, "⛔ شما مسدود شده اید!")
+        return
+    
+    # ثبت نام کاربر
+    init_user(user_id, message.from_user.username or "")
+    
+    # اگر کاربر عضو کانال نیست
+    if not is_member(user_id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("🔗 عضویت در کانال", url="https://t.me/hegzo_vpn_channle"),
+            types.InlineKeyboardButton("✅ تایید عضویت", callback_data="check_membership")
+        )
+        bot.reply_to(
+            message,
+            f"❌ کاربر عزیز!\n\nبرای استفاده از ربات، ابتدا در کانال عضو شوید:\n🔗 @hegzo_vpn_channle\n\nسپس روی دکمه‌ی ✅ تایید عضویت کلیک کنید.",
+            reply_markup=markup,
+            parse_mode='Markdown'
+        )
+        return
+    
+    # اگر همه چیز اوکی بود، خوش‌آمدگویی
+    name = message.from_user.first_name
+    bot.reply_to(
+        message,
+        f"🔥 **به هگزو وی‌پی‌ان خوش اومدی** {name}! 🎉\n\n"
+        f"⚡ اینترنت آزاد و بدون محدودیت\n"
+        f"🛡️ امنیت کامل و سرعت بالا\n"
+        f"✨ از منوی زیر یکی رو انتخاب کن:", 
+        reply_markup=main_keyboard(), 
+        parse_mode='Markdown'
+    )
+
+@bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
+@membership_required
+def back_home(m):
+    bot.reply_to(m, "🔥 منوی اصلی:", reply_markup=main_keyboard())
+
+@bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
+@membership_required
+def show_buy(m):
+    bot.reply_to(m, "📊 انتخاب دسته‌بندی:", reply_markup=buy_menu())
+
 @bot.message_handler(func=lambda m: m.text == "🎁 کانفیگ تست")
 @membership_required
 def send_free_config(m):
@@ -439,16 +468,6 @@ def send_free_config(m):
             "📢 با ادمین تماس بگیرید: @hegzosupport",
             parse_mode='Markdown'
         )
-
-@bot.message_handler(func=lambda m: m.text == "🏠 منوی اصلی")
-@membership_required
-def back_home(m):
-    bot.reply_to(m, "🔥 منوی اصلی:", reply_markup=main_keyboard())
-
-@bot.message_handler(func=lambda m: m.text == "🛒 خرید کانفیگ")
-@membership_required
-def show_buy(m):
-    bot.reply_to(m, "📊 انتخاب دسته‌بندی:", reply_markup=buy_menu())
 
 @bot.message_handler(func=lambda m: m.text == "💳 شارژ کیف پول")
 @membership_required
