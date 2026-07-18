@@ -37,13 +37,11 @@ def start(message):
     bot.reply_to(message, "✅ ربات روشن شد!")
 
 # ======================== اجرای اصلی ========================
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 5000))
-    
     bot.remove_webhook()
     time.sleep(1)
-    
     WEBHOOK_URL = f"https://{os.environ.get('RAILWAY_STATIC_URL', 'localhost')}/webhook"
     bot.set_webhook(url=WEBHOOK_URL)
-    
     app.run(host='0.0.0.0', port=PORT)
