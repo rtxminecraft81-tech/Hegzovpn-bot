@@ -1,5 +1,4 @@
 pyTelegramBotAPI==4.15.0
 Flask==2.3.3
 supabase
-flask==3.0.0
 gunicorn==21.2.0
