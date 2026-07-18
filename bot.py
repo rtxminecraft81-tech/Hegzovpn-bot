@@ -949,19 +949,18 @@ def ban_unban(m):
 def unknown(m):
     bot.reply_to(m, "❌ از دکمه‌های منو استفاده کن.", reply_markup=main_keyboard())
 
-if __name__ == '__main__':
+    if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
     print("🤖 Hegzo VPN روشن شد!")
     print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
     print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
     print("✅ بخش لینک تست با پشتیبانی از لینک‌های نامحدود فعال شد!")
     print("✅ هر نوع لینکی با هر طولی قابل قبول است!")
-    print("✅ دستور /start درست شد!")
+    
     bot.delete_webhook()
-    if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
     time.sleep(2)
+    
     from threading import Thread
     Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
-    bot.infinity_polling()
     
+    bot.infinity_polling()
