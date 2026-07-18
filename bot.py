@@ -4,7 +4,7 @@ import json
 import os
 import time
 from datetime import datetime
-from flask import Flask
+from flask import Flask, request
 import threading
 import random
 import string
@@ -14,18 +14,12 @@ from supabase import create_client, Client
 
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "Hegzo VPN Bot is running!", 200
-
 TOKEN = os.environ.get('BOT_TOKEN')
 if not TOKEN:
     raise ValueError("❌ توکن پیدا نشد!")
 
 ADMIN_ID = '6795169616'
 CHANNEL_USERNAME = '@hegzo_vpn_channle'
-
-# ======================== اطلاعات کارت ========================
 CARD_NUMBER = os.environ.get('CARD_NUMBER', '6037701210877582')
 CARD_NAME = os.environ.get('CARD_NAME', 'خزایی')
 
@@ -33,20 +27,19 @@ MIN_CHARGE = 200000
 REFERRAL_AMOUNT = 0
 COMMISSION_PERCENT = 10
 
-# ======================== وضعیت‌ها ========================
 wallet_enabled = True
 discount_enabled = True
 discounts = {}
 
-# ======================== بخش کانفیگ تست (با لینک نامحدود) ========================
+# ======================== کانفیگ تست ========================
 free_config_data = {
-    'config': None,      # لینک کامل - بدون محدودیت کاراکتر
+    'config': None,
     'description': None,
     'date': None,
     'set_by': None
 }
 
-# ======================== اتصال به Supabase ========================
+# ======================== Supabase ========================
 SUPABASE_URL = "https://fyflqsxodxpwhrfvnmex.supabase.co"
 SUPABASE_KEY = "sb_publishable_uKV9HhKzCSuVvR_q7Ei95g_LR8q9Icx"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -177,7 +170,6 @@ def main_keyboard():
     markup.add("🆘 پشتیبانی", "🏠 منوی اصلی")
     return markup
 
-# ======================== منوهای خرید ========================
 def buy_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(types.InlineKeyboardButton("🚀 اقتصادی", callback_data="cat_economic"))
@@ -208,7 +200,7 @@ def speed_menu():
     markup.add(types.InlineKeyboardButton("🔙 بازگشت", callback_data="back_buy"))
     return markup
 
-# ======================== دستورات ادمین (تخفیف) ========================
+# ======================== دستورات ادمین ========================
 @bot.message_handler(commands=['discount'])
 def add_discount(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -271,7 +263,6 @@ def discount_on(m):
     discount_enabled = True
     bot.reply_to(m, "✅ سیستم تخفیف فعال شد!")
 
-# ======================== دستورات ادمین (شارژ) ========================
 @bot.message_handler(commands=['walletoff'])
 def wallet_off(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -288,7 +279,6 @@ def wallet_on(m):
     wallet_enabled = True
     bot.reply_to(m, "✅ شارژ کیف پول فعال شد.")
 
-# ======================== دستورات ادمین (کانفیگ تست با لینک نامحدود) ========================
 @bot.message_handler(commands=['setfree'])
 def set_free_config(m):
     if str(m.from_user.id) != ADMIN_ID:
@@ -304,7 +294,6 @@ def set_free_config(m):
             bot.reply_to(m, "❌ پیام انتخابی متنی نیست!")
             return
         
-        # جداسازی توضیحات و لینک
         lines = full_text.strip().split('\n')
         
         config_link = None
@@ -312,8 +301,7 @@ def set_free_config(m):
         
         for line in lines:
             line = line.strip()
-            # تشخیص لینک (هر چیزی که شبیه لینک باشه)
-            if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org', 't.me/', 'raw.githubusercontent.com', 'github.com']):
+            if any(x in line.lower() for x in ['http://', 'https://', 'vless://', 'vmess://', 'trojan://', 'ss://', '.com', '.net', '.org']):
                 config_link = line
             else:
                 if line and not line.startswith('#'):
@@ -323,13 +311,11 @@ def set_free_config(m):
             bot.reply_to(m, "❌ **لینک پیدا نشد!**\n\nلطفاً پیامت باید شامل یک لینک باشه.")
             return
         
-        # ذخیره لینک کامل (بدون محدودیت کاراکتر)
-        free_config_data['config'] = config_link  # لینک کامل
+        free_config_data['config'] = config_link
         free_config_data['description'] = '\n'.join(description_lines) if description_lines else 'لینک تست'
         free_config_data['date'] = str(datetime.now())
         free_config_data['set_by'] = m.from_user.username or m.from_user.first_name
         
-        # نمایش فقط ۱۰۰ کاراکتر اول برای تایید
         preview = config_link[:100] + '...' if len(config_link) > 100 else config_link
         
         bot.reply_to(
@@ -444,7 +430,6 @@ def send_free_config(m):
         except:
             date_str = free_config_data.get('date', 'نامشخص')
         
-        # ارسال لینک کامل بدون هیچ گونه کوتاه‌سازی
         text = f"""🎁 **لینک تست رایگان**
 
 📝 **توضیحات:**
@@ -600,7 +585,6 @@ def reject_charge(call):
     bot.send_message(int(user_id), "❌ درخواست شارژ شما رد شد. لطفاً با پشتیبانی تماس بگیرید: @hegzosupport")
     bot.answer_callback_query(call.id, "❌ رد شد")
 
-# ======================== منوهای دسته‌بندی ========================
 @bot.callback_query_handler(func=lambda call: call.data.startswith("cat_"))
 def handle_category(call):
     category = call.data.replace("cat_", "")
@@ -650,7 +634,6 @@ def buy_cmd(call):
     
     process_purchase(user_id, package, price, call)
 
-# ======================== توابع خرید ========================
 def process_purchase(user_id, package, price, call=None, discount_code=None):
     credit = users[user_id].get('credit', 0)
     original_price = price
@@ -742,7 +725,6 @@ def no_discount(call):
     process_purchase(user_id, package, price, call)
     bot.answer_callback_query(call.id)
 
-# ======================== دکمه‌های برگشت ========================
 @bot.callback_query_handler(func=lambda call: call.data == "back_buy")
 def back_buy(call):
     try:
@@ -949,18 +931,20 @@ def ban_unban(m):
 def unknown(m):
     bot.reply_to(m, "❌ از دکمه‌های منو استفاده کن.", reply_markup=main_keyboard())
 
-    if __name__ == '__main__':
+# ======================== اجرای اصلی (بدون هیچ اروری) ========================
+if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 10000))
+    
     print("🤖 Hegzo VPN روشن شد!")
-    print("✅ پاداش دعوت حذف شد - فقط کمیسیون ۱۰٪ فعال است!")
-    print("✅ منوهای جدید: اقتصادی | خانواده | پرسرعت")
-    print("✅ بخش لینک تست با پشتیبانی از لینک‌های نامحدود فعال شد!")
-    print("✅ هر نوع لینکی با هر طولی قابل قبول است!")
+    print("✅ همه چیز آماده است!")
     
-    bot.delete_webhook()
-    time.sleep(2)
+    # حذف webhook قبلی
+    bot.remove_webhook()
+    time.sleep(1)
     
-    from threading import Thread
-    Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
+    # تنظیم webhook (برای Railway)
+    WEBHOOK_URL = os.environ.get('WEBHOOK_URL', f"https://{os.environ.get('RAILWAY_STATIC_URL', 'localhost')}/webhook")
+    bot.set_webhook(url=WEBHOOK_URL)
     
-    bot.infinity_polling()
+    # اجرا با Flask
+    app.run(host='0.0.0.0', port=PORT, debug=False)
