@@ -958,7 +958,10 @@ if __name__ == '__main__':
     print("✅ هر نوع لینکی با هر طولی قابل قبول است!")
     print("✅ دستور /start درست شد!")
     bot.delete_webhook()
+    if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
     time.sleep(2)
     from threading import Thread
     Thread(target=lambda: app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)).start()
     bot.infinity_polling()
+    
